@@ -14,10 +14,7 @@
 #include <CGAL/edge_aware_upsample_point_set.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Search_traits_3.h>
-
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/search/kdtree.h>
+#include <CGAL/Search_traits_adapter.h>
 
 #include "Vertex.h"
 #include "Shader.h"
@@ -26,8 +23,9 @@ typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_3 Point;
 typedef Kernel::Vector_3 Vector;
 typedef std::pair<Point, Vector> PointNormal;
-typedef CGAL::Search_traits_3<Kernel> SearchTraits;
-typedef CGAL::Orthogonal_k_neighbor_search<SearchTraits> NeighborSearch;
+typedef CGAL::Search_traits_3<Kernel> BaseTraits;
+typedef CGAL::Search_traits_adapter<PointNormal, CGAL::First_of_pair_property_map<PointNormal>, BaseTraits> Traits;
+typedef CGAL::Orthogonal_k_neighbor_search<Traits> NeighborSearch;
 typedef NeighborSearch::Tree Tree;
 
 class PointSet {

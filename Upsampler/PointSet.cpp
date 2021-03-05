@@ -6,11 +6,9 @@ PointSet::PointSet(std::vector<Vertex> &vertices) {
 	this->vertices = vertices;
 
     bool flag = false;
-    for (Vertex& vertex : this->vertices) {
-        std::cout << glm::length(vertex.normal) << std::endl;
+    for (Vertex& vertex : this->vertices)
         if (glm::length(vertex.normal) < 1e-5f)
             flag = true;
-    }
     if (flag)
         calculateNormals();
 
@@ -80,8 +78,8 @@ int PointSet::size() {
 }
 
 PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size) {
-    int k = 24;
-    std::vector<Point> points = toPoint(this->vertices);
+    int k = 50;
+    std::vector<PointNormal> points = toPointNormal(this->vertices);
     Tree tree(points.begin(), points.end());
     std::vector<Vertex> vertices;
     for (Vertex& vertex : this->vertices) {
@@ -89,11 +87,11 @@ PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, doubl
         std::vector<PointNormal> pointsTemp;
         float avg = 0;
         for (NeighborSearch::iterator iter = search.begin(); iter != search.end(); iter++) {
-            pointsTemp.push_back(std::make_pair(iter->first, Vector(0.0f, 0.0f, 0.0f)));
+            pointsTemp.push_back(iter->first);
             avg += std::sqrt(iter->second);
         }
         avg /= k;
-        CGAL::edge_aware_upsample_point_set<CGAL::Sequential_tag>(pointsTemp, std::back_inserter(pointsTemp),
+        CGAL::edge_aware_upsample_point_set<CGAL::Parallel_if_available_tag>(pointsTemp, std::back_inserter(pointsTemp),
             CGAL::parameters::
             point_map(CGAL::First_of_pair_property_map<PointNormal>()).
             normal_map(CGAL::Second_of_pair_property_map<PointNormal>()).
@@ -102,11 +100,19 @@ PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, doubl
             neighbor_radius(neighborRadius).
             number_of_output_points((int)(size * avg * avg)));
         std::vector<Vertex> verticesTemp = fromPointNormal(pointsTemp);
-        std::cout << pointsTemp.size() << std::endl;
-        for (PointNormal& point : pointsTemp)
-            std::cout << point.first.x() << ' ' << point.first.y() << ' ' << point.first.z() << point.second.x() << ' ' << point.second.y() << ' ' << point.second.z() << std::endl;
         vertices.insert(vertices.end(), verticesTemp.begin(), verticesTemp.end());
     }
+
+    /*std::vector<PointNormal> points = toPointNormal(this->vertices);
+    CGAL::edge_aware_upsample_point_set<CGAL::Parallel_if_available_tag>(points, std::back_inserter(points),
+        CGAL::parameters::
+        point_map(CGAL::First_of_pair_property_map<PointNormal>()).
+        normal_map(CGAL::Second_of_pair_property_map<PointNormal>()).
+        sharpness_angle(sharpnessAngle).
+        edge_sensitivity(edgeSensitivity).
+        neighbor_radius(neighborRadius).
+        number_of_output_points(this->vertices.size() * 4));
+    std::vector<Vertex> vertices = fromPointNormal(points);*/
 
     return PointSet(vertices);
 }
