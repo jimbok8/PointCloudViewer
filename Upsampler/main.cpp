@@ -21,8 +21,8 @@ const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1);
 
-int lastX = INT_MIN, lastY = INT_MIN, display = 0, type = 0;
-double sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 1.0, searchRadius = 2.0, upsamplingRadius = 0.1, stepSize = 0.01;
+int lastX = INT_MIN, lastY = INT_MIN, display = 0, size;
+double sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 0.1;
 float factor = 1.0f;
 bool press;
 glm::mat4 rotate(1.0f);
@@ -64,7 +64,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 void calculate() {
-    upsample = origin.upsample(type, sharpnessAngle, edgeSensitivity, neighborRadius, searchRadius, upsamplingRadius, stepSize);
+    upsample = origin.upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
 }
 
 int main(int argc, char** argv) {
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     Shader shader("shader/Vertex.glsl", "shader/Fragment.glsl");
     std::vector<Vertex> points;
     std::string s;
-    std::ifstream fin("../data/box_noise.dat");
+    std::ifstream fin("../data/pool.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
         points[i].position -= center;
 
     origin = PointSet(points);
+    size = 500;
     calculate();
 
     while (!glfwWindowShouldClose(window)) {
@@ -149,25 +150,11 @@ int main(int argc, char** argv) {
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Upsampling method", true)) {
-            ImGui::RadioButton("Edge aware", &type, 0);
-            ImGui::RadioButton("Moving least squares", &type, 1);
-            ImGui::TreePop();
-        }
-
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Edge aware options", true)) {
+        if (ImGui::TreeNodeEx("Upsampling options", true)) {
             ImGui::InputDouble("sharpnessAngle", &sharpnessAngle);
             ImGui::InputDouble("edgeSensitivity", &edgeSensitivity);
             ImGui::InputDouble("neighborRadius", &neighborRadius);
-            ImGui::TreePop();
-        }
-
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Moving least squares options", true)) {
-            ImGui::InputDouble("searchRadius", &searchRadius);
-            ImGui::InputDouble("upsamplingRadius", &upsamplingRadius);
-            ImGui::InputDouble("stepSize", &stepSize);
+            ImGui::InputInt("size", &size);
             ImGui::TreePop();
         }
 

@@ -64,6 +64,7 @@ public:
 	PointSet smooth(int k);
 	Mesh reconstruct(int type, int resolution);
 	void render();
+	void save(const std::string& path);
 };
 
 #endif

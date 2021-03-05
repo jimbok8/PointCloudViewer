@@ -95,14 +95,12 @@ std::vector<PointSet> PointSet::divide(double scale, float threshold) {
                 std::vector<int> indices;
                 std::vector<float> distances;
                 tree->radiusSearch(pcl::PointXYZ(this->vertices[now].position.x, this->vertices[now].position.y, this->vertices[now].position.z), scale * spacing, indices, distances);
-                for (int j : indices) {
-                    float theta = std::acos(glm::dot(this->vertices[now].normal, this->vertices[j].normal));
-                    if (!flag[j] && theta < threshold) {
+                for (int j : indices)
+                    if (!flag[j]) {
                         flag[j] = true;
                         q.push(j);
                         vertices.push_back(this->vertices[j]);
                     }
-                }
             }
             ans.push_back(PointSet(vertices));
         }
@@ -289,4 +287,10 @@ void PointSet::render() {
 	glBindVertexArray(vao);
 	glDrawArrays(GL_POINTS, 0, vertices.size());
 	glBindVertexArray(0);
+}
+
+void PointSet::save(const std::string& path) {
+    std::ofstream fout(path);
+    for (Vertex& vertex : vertices)
+        fout << "v " << vertex.position.x << ' ' << vertex.position.y << ' ' << vertex.position.z << " 0 0" << std::endl;
 }

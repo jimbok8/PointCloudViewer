@@ -33,7 +33,7 @@ float factor = 1.0f;
 bool press;
 glm::mat4 rotate(1.0f);
 
-int sizeThreshold = 10, numCluster, removeK = 24, smoothK = 30, resolution = 64, type = 0;
+int sizeThreshold = 10, numCluster, removeK = 24, smoothK = 30, resolution = 64, type = 0, saveCluster = 0;
 double divideScale = 3.0, removeScale = 2.0, simplifyScale = 2.0;
 float divideThreshold = 30.0f;
 std::vector<PointSet> origins, removes, simplifies, smoothes, divides;
@@ -78,9 +78,11 @@ void calculate() {
     std::vector<PointSet>().swap(divides);
     for (PointSet& set : origins) {
         std::vector<PointSet> temp = set.divide(divideScale, glm::radians(divideThreshold));
-        for (PointSet& tmp : temp)
-            if (tmp.size() >= sizeThreshold)
-                divides.push_back(tmp);
+        for (int i = 0; i < temp.size(); i++)
+            if (temp[i].size() >= sizeThreshold) {
+                std::cout << "Cluster " << i << " contains " << temp[i].size() << " point(s)." << std::endl;
+                divides.push_back(temp[i]);
+            }
     }
 
     std::vector<PointSet>().swap(removes);
@@ -141,7 +143,7 @@ int main(int argc, char** argv) {
     std::vector<Vertex> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/model.dat");
+    std::ifstream fin("../data/box_noise.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -241,12 +243,18 @@ int main(int argc, char** argv) {
 
             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             if (ImGui::TreeNodeEx("Reconstruct method", true)) {
-                ImGui::RadioButton("Use advancing front surface reconstruction", &type, 0);
-                ImGui::RadioButton("Use scale space surface reconstruction", &type, 1);
-                ImGui::RadioButton("Use Poisson surface reconstruction", &type, 2);
-                ImGui::RadioButton("Use greedy projection triangulation", &type, 3);
-                ImGui::RadioButton("Use marching cubes Hoppe", &type, 4);
-                ImGui::RadioButton("Use marching cubes RBF", &type, 5);
+                ImGui::RadioButton("Advancing front surface reconstruction", &type, 0);
+                ImGui::RadioButton("Scale space surface reconstruction", &type, 1);
+                ImGui::RadioButton("Poisson surface reconstruction", &type, 2);
+                ImGui::RadioButton("Greedy projection triangulation", &type, 3);
+                ImGui::RadioButton("Marching cubes Hoppe", &type, 4);
+                ImGui::RadioButton("Marching cubes RBF", &type, 5);
+                ImGui::TreePop();
+            }
+
+            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+            if (ImGui::TreeNodeEx("Save option", true)) {
+                ImGui::InputInt("cluster", &saveCluster);
                 ImGui::TreePop();
             }
 
@@ -255,6 +263,8 @@ int main(int argc, char** argv) {
 
         if (ImGui::Button("Calculate"))
             calculate();
+        if (ImGui::Button("Save") && saveCluster < divides.size())
+            divides[saveCluster].save("../data/output.dat");
 
         glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 1.5f * pointScale);
         glm::mat4 modelMat, viewMat, projectionMat;

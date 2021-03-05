@@ -5,8 +5,14 @@ PointSet::PointSet() {}
 PointSet::PointSet(std::vector<Vertex> &vertices) {
 	this->vertices = vertices;
 
-    calculateSpacing();
-    calculateNormals();
+    bool flag = false;
+    for (Vertex& vertex : this->vertices) {
+        std::cout << glm::length(vertex.normal) << std::endl;
+        if (glm::length(vertex.normal) < 1e-5f)
+            flag = true;
+    }
+    if (flag)
+        calculateNormals();
 
 	unsigned int vbo;
 	glGenVertexArrays(1, &vao);
@@ -58,11 +64,6 @@ std::vector<Vertex> PointSet::fromPointNormal(std::vector<PointNormal>& points) 
     return ans;
 }
 
-void PointSet::calculateSpacing() {
-    std::vector<Point> points = toPoint(vertices);
-    spacing = CGAL::compute_average_spacing<CGAL::Sequential_tag>(points, 24);
-}
-
 void PointSet::calculateNormals() {
     std::vector<PointNormal> points = toPointNormal(vertices);
     CGAL::jet_estimate_normals<CGAL::Sequential_tag>(points, 24, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
@@ -78,37 +79,33 @@ int PointSet::size() {
     return vertices.size();
 }
 
-PointSet PointSet::upsample(int type, double sharpnessAngle, double edgeSensitivity, double neighborRadius, double searchRadius, double upsamplingRadius, double stepSize) {
+PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size) {
+    int k = 24;
+    std::vector<Point> points = toPoint(this->vertices);
+    Tree tree(points.begin(), points.end());
     std::vector<Vertex> vertices;
-    if (type == 0) {
-        std::vector<PointNormal> points = toPointNormal(this->vertices);
-        CGAL::edge_aware_upsample_point_set<CGAL::Sequential_tag>(points, std::back_inserter(points),
+    for (Vertex& vertex : this->vertices) {
+        NeighborSearch search(tree, Point(vertex.position.x, vertex.position.y, vertex.position.z), k);
+        std::vector<PointNormal> pointsTemp;
+        float avg = 0;
+        for (NeighborSearch::iterator iter = search.begin(); iter != search.end(); iter++) {
+            pointsTemp.push_back(std::make_pair(iter->first, Vector(0.0f, 0.0f, 0.0f)));
+            avg += std::sqrt(iter->second);
+        }
+        avg /= k;
+        CGAL::edge_aware_upsample_point_set<CGAL::Sequential_tag>(pointsTemp, std::back_inserter(pointsTemp),
             CGAL::parameters::
             point_map(CGAL::First_of_pair_property_map<PointNormal>()).
             normal_map(CGAL::Second_of_pair_property_map<PointNormal>()).
             sharpness_angle(sharpnessAngle).
             edge_sensitivity(edgeSensitivity).
             neighbor_radius(neighborRadius).
-            number_of_output_points(points.size() * 4));
-        vertices = fromPointNormal(points);
-    }
-    else if (type == 1) {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr points(new pcl::PointCloud<pcl::PointXYZ>);
-        for (Vertex& vertex : this->vertices)
-            points->push_back(pcl::PointXYZ(vertex.position.x, vertex.position.y, vertex.position.z));
-        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
-        pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointXYZ> mls;
-        mls.setComputeNormals(true);
-        mls.setInputCloud(points);
-        mls.setSearchMethod(tree);
-        mls.setSearchRadius(searchRadius);
-        mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointXYZ>::UpsamplingMethod::SAMPLE_LOCAL_PLANE);
-        mls.setUpsamplingRadius(upsamplingRadius);
-        mls.setUpsamplingStepSize(stepSize);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr upsample(new pcl::PointCloud<pcl::PointXYZ>);
-        mls.process(*upsample);
-        for (pcl::PointXYZ& point : *upsample)
-            vertices.push_back(Vertex(point.x, point.y, point.z));
+            number_of_output_points((int)(size * avg * avg)));
+        std::vector<Vertex> verticesTemp = fromPointNormal(pointsTemp);
+        std::cout << pointsTemp.size() << std::endl;
+        for (PointNormal& point : pointsTemp)
+            std::cout << point.first.x() << ' ' << point.first.y() << ' ' << point.first.z() << point.second.x() << ' ' << point.second.y() << ' ' << point.second.z() << std::endl;
+        vertices.insert(vertices.end(), verticesTemp.begin(), verticesTemp.end());
     }
 
     return PointSet(vertices);
