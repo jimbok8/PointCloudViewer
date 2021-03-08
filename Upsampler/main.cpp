@@ -21,9 +21,9 @@ const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1);
 
-int lastX = INT_MIN, lastY = INT_MIN, display = 0, size;
+int lastX = INT_MIN, lastY = INT_MIN, display = 0, k = 200, size = 50;
 double sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 0.1;
-float factor = 1.0f;
+float threshold = 2.0f, factor = 1.0f;
 bool press;
 glm::mat4 rotate(1.0f);
 PointSet origin, upsample;
@@ -64,7 +64,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 void calculate() {
-    upsample = origin.upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
+    upsample = origin.upsample(k, threshold, sharpnessAngle, edgeSensitivity, neighborRadius, size);
 }
 
 int main(int argc, char** argv) {
@@ -129,7 +129,6 @@ int main(int argc, char** argv) {
         points[i].position -= center;
 
     origin = PointSet(points);
-    size = 500;
     calculate();
 
     while (!glfwWindowShouldClose(window)) {
@@ -151,6 +150,8 @@ int main(int argc, char** argv) {
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Upsampling options", true)) {
+            ImGui::InputInt("k", &k);
+            ImGui::InputFloat("threshold", &threshold);
             ImGui::InputDouble("sharpnessAngle", &sharpnessAngle);
             ImGui::InputDouble("edgeSensitivity", &edgeSensitivity);
             ImGui::InputDouble("neighborRadius", &neighborRadius);

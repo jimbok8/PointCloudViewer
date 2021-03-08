@@ -16,6 +16,8 @@
 #include <CGAL/Search_traits_3.h>
 #include <CGAL/Search_traits_adapter.h>
 
+#include <Eigen/Dense>
+
 #include "Vertex.h"
 #include "Shader.h"
 
@@ -37,13 +39,14 @@ private:
 	std::vector<PointNormal> toPointNormal(std::vector<Vertex>& vertices);
 	std::vector<Vertex> fromPointNormal(std::vector<PointNormal>& points);
 	void calculateNormals();
+	std::vector<PointNormal> filter(std::vector<PointNormal> &points, float threshold);
 
 public:
     PointSet();
 	PointSet(std::vector<Vertex>& vertices);
 	~PointSet();
 	int size();
-	PointSet upsample(double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size);
+	PointSet upsample(int k, float threshold, double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size);
 	void render();
 };
 
