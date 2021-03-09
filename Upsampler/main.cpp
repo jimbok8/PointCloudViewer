@@ -16,17 +16,19 @@
 #include "Vertex.h"
 #include "Shader.h"
 #include "PointSet.h"
+#include "Mesh.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1);
 
-int lastX = INT_MIN, lastY = INT_MIN, display = 0, k = 200, size = 50;
-double sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 0.1;
+int lastX = INT_MIN, lastY = INT_MIN, display = 0, k = 50, size = 50, type = 0;
+double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0;
 float threshold = 2.0f, factor = 1.0f;
 bool press;
 glm::mat4 rotate(1.0f);
-PointSet origin, upsample;
+PointSet origin, simplify, upsample, smooth;
+Mesh mesh;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -61,10 +63,6 @@ void scrollCallback(GLFWwindow* window, double x, double y) {
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-}
-
-void calculate() {
-    upsample = origin.upsample(k, threshold, sharpnessAngle, edgeSensitivity, neighborRadius, size);
 }
 
 int main(int argc, char** argv) {
@@ -127,9 +125,7 @@ int main(int argc, char** argv) {
     glm::vec3 center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     for (int i = 0; i < points.size(); i++)
         points[i].position -= center;
-
     origin = PointSet(points);
-    calculate();
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -144,7 +140,16 @@ int main(int argc, char** argv) {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Displaying option", true)) {
             ImGui::RadioButton("Display original point cloud", &display, 0);
-            ImGui::RadioButton("Display upsampled point cloud", &display, 1);
+            ImGui::RadioButton("Display simplified point cloud", &display, 1);
+            ImGui::RadioButton("Display upsampled point cloud", &display, 2);
+            ImGui::RadioButton("Display smoothed point cloud", &display, 3);
+            ImGui::RadioButton("Display reconstructed mesh", &display, 4);
+            ImGui::TreePop();
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Simplify option", true)) {
+            ImGui::InputDouble("epsilon", &epsilon);
             ImGui::TreePop();
         }
 
@@ -159,8 +164,24 @@ int main(int argc, char** argv) {
             ImGui::TreePop();
         }
 
-        if (ImGui::Button("Calculate"))
-            calculate();
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Reconstruct method", true)) {
+            ImGui::RadioButton("Advancing front surface reconstruction", &type, 0);
+            ImGui::RadioButton("Scale space surface reconstruction", &type, 1);
+            ImGui::RadioButton("Greedy projection triangulation", &type, 2);
+            ImGui::RadioButton("Marching cubes Hoppe", &type, 3);
+            ImGui::RadioButton("Marching cubes RBF", &type, 4);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::Button("Simplify"))
+            simplify = origin.simplify(epsilon);
+        if (ImGui::Button("Upsample"))
+            upsample = simplify.upsample(k, threshold, sharpnessAngle, edgeSensitivity, neighborRadius, size);
+        if (ImGui::Button("Smooth"))
+            smooth = upsample.smooth();
+        if (ImGui::Button("Reconstruct"))
+            mesh = smooth.reconstruct(type);
 
         glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 1.5f);
         glm::mat4 modelMat, viewMat, projectionMat;
@@ -175,10 +196,25 @@ int main(int argc, char** argv) {
         shader.setVec3("lightDirection", lightDirection);
         shader.setVec3("cameraPosition", cameraPosition);
 
-        if (display == 0)
+        switch (display) {
+        case 0:
             origin.render();
-        else if (display == 1)
+            break;
+        case 1:
+            simplify.render();
+            break;
+        case 2:
             upsample.render();
+            break;
+        case 3:
+            smooth.render();
+            break;
+        case 4:
+            mesh.render();
+            break;
+        default:
+            break;
+        }
 
         ImGui::End();
 
