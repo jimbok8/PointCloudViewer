@@ -1,25 +1,25 @@
 #include "PointSet.h"
 
 PointSet::PointSet(std::vector<Vertex>& vertices) {
-	this->vertices = vertices;
+    this->vertices = vertices;
 
     calculateSpacing();
     calculateNormals();
 
-	unsigned int vbo;
-	glGenVertexArrays(1, &vao);
-	glGenBuffers(1, &vbo);
+    unsigned int vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
 
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(Vertex), &(this->vertices[0]), GL_STATIC_DRAW);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(Vertex), &(this->vertices[0]), GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
-	glBindVertexArray(0);
+    glBindVertexArray(0);
 }
 
 PointSet::~PointSet() {};
@@ -283,10 +283,10 @@ Mesh PointSet::reconstruct(int type, int resolution) {
 }
 
 void PointSet::render() {
-	glPointSize(2);
-	glBindVertexArray(vao);
-	glDrawArrays(GL_POINTS, 0, vertices.size());
-	glBindVertexArray(0);
+    glPointSize(2);
+    glBindVertexArray(vao);
+    glDrawArrays(GL_POINTS, 0, vertices.size());
+    glBindVertexArray(0);
 }
 
 void PointSet::save(const std::string& path) {

@@ -22,9 +22,9 @@ const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1);
 
-int lastX = INT_MIN, lastY = INT_MIN, display = 0, k = 50, size = 50, type = 0;
-double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0;
-float threshold = 2.0f, factor = 1.0f;
+int lastX = INT_MIN, lastY = INT_MIN, display = 0, size = 10000, k = 64;
+double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
+float factor = 1.0f;
 bool press;
 glm::mat4 rotate(1.0f);
 PointSet origin, simplify, upsample, smooth;
@@ -148,15 +148,13 @@ int main(int argc, char** argv) {
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Simplify option", true)) {
+        if (ImGui::TreeNodeEx("Simplifying option", true)) {
             ImGui::InputDouble("epsilon", &epsilon);
             ImGui::TreePop();
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Upsampling options", true)) {
-            ImGui::InputInt("k", &k);
-            ImGui::InputFloat("threshold", &threshold);
             ImGui::InputDouble("sharpnessAngle", &sharpnessAngle);
             ImGui::InputDouble("edgeSensitivity", &edgeSensitivity);
             ImGui::InputDouble("neighborRadius", &neighborRadius);
@@ -165,23 +163,25 @@ int main(int argc, char** argv) {
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Reconstruct method", true)) {
-            ImGui::RadioButton("Advancing front surface reconstruction", &type, 0);
-            ImGui::RadioButton("Scale space surface reconstruction", &type, 1);
-            ImGui::RadioButton("Greedy projection triangulation", &type, 2);
-            ImGui::RadioButton("Marching cubes Hoppe", &type, 3);
-            ImGui::RadioButton("Marching cubes RBF", &type, 4);
+        if (ImGui::TreeNodeEx("Smoothing options", true)) {
+            ImGui::InputInt("k", &k);
+            ImGui::TreePop();
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Reconstructing options", true)) {
+            ImGui::InputDouble("maximumFacetLength", &maximumFacetLength);
             ImGui::TreePop();
         }
 
         if (ImGui::Button("Simplify"))
             simplify = origin.simplify(epsilon);
         if (ImGui::Button("Upsample"))
-            upsample = simplify.upsample(k, threshold, sharpnessAngle, edgeSensitivity, neighborRadius, size);
+            upsample = simplify.upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
         if (ImGui::Button("Smooth"))
-            smooth = upsample.smooth();
+            smooth = upsample.smooth(k);
         if (ImGui::Button("Reconstruct"))
-            mesh = smooth.reconstruct(type);
+            mesh = smooth.reconstruct(maximumFacetLength);
 
         glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 1.5f);
         glm::mat4 modelMat, viewMat, projectionMat;

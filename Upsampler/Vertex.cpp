@@ -1,4 +1,4 @@
-#include "Vertex.h"
+﻿#include "Vertex.h"
 
 Vertex::Vertex(float x, float y, float z) {
 	this->position = glm::vec3(x, y, z);

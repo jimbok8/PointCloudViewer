@@ -18,15 +18,15 @@
 
 class Mesh {
 private:
-	std::vector<Vertex> vertices;
-	std::vector<unsigned int> indices;
-	unsigned int vao;
-	void calculateNormals();
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    unsigned int vao;
+    void calculateNormals();
 
 public:
-	Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
-	~Mesh();
-	void render();
+    Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
+    ~Mesh();
+    void render();
 };
 
 #endif

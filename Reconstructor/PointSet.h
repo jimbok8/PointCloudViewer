@@ -44,27 +44,27 @@ typedef SurfaceMesh::Halfedge_index HalfedgeIndex;
 
 class PointSet {
 private:
-	std::vector<Vertex> vertices;
-	unsigned int vao;
-	double spacing;
-	std::vector<Point> toPoint(std::vector<Vertex>& vertices);
-	std::vector<Vertex> fromPoint(std::vector<Point>& points);
-	std::vector<PointNormal> toPointNormal(std::vector<Vertex>& vertices);
-	std::vector<Vertex> fromPointNormal(std::vector<PointNormal>& points);
-	void calculateSpacing();
-	void calculateNormals();
+    std::vector<Vertex> vertices;
+    unsigned int vao;
+    double spacing;
+    std::vector<Point> toPoint(std::vector<Vertex>& vertices);
+    std::vector<Vertex> fromPoint(std::vector<Point>& points);
+    std::vector<PointNormal> toPointNormal(std::vector<Vertex>& vertices);
+    std::vector<Vertex> fromPointNormal(std::vector<PointNormal>& points);
+    void calculateSpacing();
+    void calculateNormals();
 
 public:
-	PointSet(std::vector<Vertex>& vertices);
-	~PointSet();
-	int size();
-	std::vector<PointSet> divide(double scale, float threshold);
-	PointSet removeOutliers(int k, double scale);
-	PointSet simplify(double scale);
-	PointSet smooth(int k);
-	Mesh reconstruct(int type, int resolution);
-	void render();
-	void save(const std::string& path);
+    PointSet(std::vector<Vertex>& vertices);
+    ~PointSet();
+    int size();
+    std::vector<PointSet> divide(double scale, float threshold);
+    PointSet removeOutliers(int k, double scale);
+    PointSet simplify(double scale);
+    PointSet smooth(int k);
+    Mesh reconstruct(int type, int resolution);
+    void render();
+    void save(const std::string& path);
 };
 
 #endif

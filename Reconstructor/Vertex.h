@@ -5,10 +5,10 @@
 
 struct Vertex {
 public:
-	glm::vec3 position, normal;
-	Vertex(float x, float y, float z);
-	Vertex(float x, float y, float z, float nx, float ny, float nz);
-	~Vertex();
+    glm::vec3 position, normal;
+    Vertex(float x, float y, float z);
+    Vertex(float x, float y, float z, float nx, float ny, float nz);
+    ~Vertex();
 };
 
 #endif

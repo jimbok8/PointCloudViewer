@@ -3,24 +3,24 @@
 PointSet::PointSet() {}
 
 PointSet::PointSet(std::vector<Vertex> &vertices) {
-	this->vertices = vertices;
+    this->vertices = vertices;
     
     calculateNormals();
 
-	unsigned int vbo;
-	glGenVertexArrays(1, &vao);
-	glGenBuffers(1, &vbo);
+    unsigned int vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
 
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(Vertex), &(this->vertices[0]), GL_STATIC_DRAW);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(Vertex), &(this->vertices[0]), GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
-	glBindVertexArray(0);
+    glBindVertexArray(0);
 }
 
 PointSet::~PointSet() {}
@@ -116,38 +116,38 @@ PointSet PointSet::simplify(double epsilon) {
     return PointSet(vertices);
 }
 
-PointSet PointSet::upsample(int k, float threshold, double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size) {
-    std::vector<PointNormal> points = toPointNormal(this->vertices);
-    Tree tree(points.begin(), points.end());
-    std::vector<Vertex> vertices;
-    for (Vertex& vertex : this->vertices) {
-        NeighborSearch search(tree, Point(vertex.position.x, vertex.position.y, vertex.position.z), k);
-        std::vector<PointNormal> pointsTemp;
-        float avg = 0;
-        for (NeighborSearch::iterator iter = search.begin(); iter != search.end(); iter++) {
-            pointsTemp.push_back(iter->first);
-            avg += std::sqrt(iter->second);
-        }
-        avg /= k;
-       /* int sizeTemp;
-        do {
-            sizeTemp = pointsTemp.size();
-            pointsTemp = filter(pointsTemp, threshold);
-        } while (sizeTemp > pointsTemp.size());
-        std::cout << pointsTemp.size() << std::endl;*/
-        CGAL::edge_aware_upsample_point_set<CGAL::Parallel_if_available_tag>(pointsTemp, std::back_inserter(pointsTemp),
-            CGAL::parameters::
-            point_map(CGAL::First_of_pair_property_map<PointNormal>()).
-            normal_map(CGAL::Second_of_pair_property_map<PointNormal>()).
-            sharpness_angle(sharpnessAngle).
-            edge_sensitivity(edgeSensitivity).
-            neighbor_radius(avg).
-            number_of_output_points((int)(size * avg * avg)));
-        std::vector<Vertex> verticesTemp = fromPointNormal(pointsTemp);
-        vertices.insert(vertices.end(), verticesTemp.begin(), verticesTemp.end());
-    }
+PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size) {
+    //std::vector<PointNormal> points = toPointNormal(this->vertices);
+    //Tree tree(points.begin(), points.end());
+    //std::vector<Vertex> vertices;
+    //for (Vertex& vertex : this->vertices) {
+    //    NeighborSearch search(tree, Point(vertex.position.x, vertex.position.y, vertex.position.z), k);
+    //    std::vector<PointNormal> pointsTemp;
+    //    float avg = 0;
+    //    for (NeighborSearch::iterator iter = search.begin(); iter != search.end(); iter++) {
+    //        pointsTemp.push_back(iter->first);
+    //        avg += std::sqrt(iter->second);
+    //    }
+    //    avg /= k;
+    //    /* int sizeTemp;
+    //    do {
+    //        sizeTemp = pointsTemp.size();
+    //        pointsTemp = filter(pointsTemp, threshold);
+    //    } while (sizeTemp > pointsTemp.size());
+    //    std::cout << pointsTemp.size() << std::endl;*/
+    //    CGAL::edge_aware_upsample_point_set<CGAL::Parallel_if_available_tag>(pointsTemp, std::back_inserter(pointsTemp),
+    //        CGAL::parameters::
+    //        point_map(CGAL::First_of_pair_property_map<PointNormal>()).
+    //        normal_map(CGAL::Second_of_pair_property_map<PointNormal>()).
+    //        sharpness_angle(sharpnessAngle).
+    //        edge_sensitivity(edgeSensitivity).
+    //        neighbor_radius(avg * 5.0).
+    //        number_of_output_points((int)(size * avg * avg)));
+    //    std::vector<Vertex> verticesTemp = fromPointNormal(pointsTemp);
+    //    vertices.insert(vertices.end(), verticesTemp.begin(), verticesTemp.end());
+    //}
 
-    /*std::vector<PointNormal> points = toPointNormal(this->vertices);
+    std::vector<PointNormal> points = toPointNormal(this->vertices);
     CGAL::edge_aware_upsample_point_set<CGAL::Parallel_if_available_tag>(points, std::back_inserter(points),
         CGAL::parameters::
         point_map(CGAL::First_of_pair_property_map<PointNormal>()).
@@ -155,8 +155,8 @@ PointSet PointSet::upsample(int k, float threshold, double sharpnessAngle, doubl
         sharpness_angle(sharpnessAngle).
         edge_sensitivity(edgeSensitivity).
         neighbor_radius(neighborRadius).
-        number_of_output_points(this->vertices.size() * 4));
-    std::vector<Vertex> vertices = fromPointNormal(points);*/
+        number_of_output_points(size));
+    std::vector<Vertex> vertices = fromPointNormal(points);
 
     return PointSet(vertices);
 }
@@ -169,82 +169,25 @@ PointSet PointSet::smooth(int k) {
     return PointSet(vertices);
 }
 
-Mesh PointSet::reconstruct(int type) {
-    std::vector<Vertex> vertices;
+Mesh PointSet::reconstruct(double maximumFacetLength) {
+    std::vector<Point> points = toPoint(this->vertices);
+    CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
+    reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
+    reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumFacetLength));
+
+    std::vector<Vertex> vertices = this->vertices;
     std::vector<unsigned int> indices;
-
-    if (type == 0) {
-        std::vector<Point> points = toPoint(this->vertices);
-        std::vector<std::array<std::size_t, 3>> facets;
-        CGAL::advancing_front_surface_reconstruction(points.begin(), points.end(), std::back_inserter(facets));
-
-        vertices = this->vertices;
-        for (std::array<std::size_t, 3>&facet : facets)
-            for (size_t index : facet)
-                indices.push_back(index);
-    }
-    else if (type == 1) {
-        std::vector<Point> points = toPoint(this->vertices);
-        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
-        reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
-        reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(2.0));
-
-        vertices = this->vertices;
-        for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
-            for (unsigned int index : *iter)
-                indices.push_back(index);
-    }
-    else {
-        pcl::PointCloud<pcl::PointNormal>::Ptr points(new pcl::PointCloud<pcl::PointNormal>);
-        for (Vertex& vertex : this->vertices)
-            points->push_back(pcl::PointNormal(vertex.position.x, vertex.position.y, vertex.position.z, vertex.normal.x, vertex.normal.y, vertex.normal.z));
-        pcl::search::KdTree<pcl::PointNormal>::Ptr tree(new pcl::search::KdTree<pcl::PointNormal>);
-        tree->setInputCloud(points);
-        pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh);
-
-        if (type == 2) {
-            pcl::GreedyProjectionTriangulation<pcl::PointNormal> gpt;
-            gpt.setSearchRadius(2.0);
-            gpt.setMu(5.0);
-            gpt.setMaximumNearestNeighbors(200);
-            gpt.setMaximumSurfaceAngle(M_PI / 2);
-            gpt.setMinimumAngle(M_PI / 18);
-            gpt.setMaximumAngle(M_PI * 2 / 3);
-            gpt.setNormalConsistency(false);
-            gpt.setInputCloud(points);
-            gpt.setSearchMethod(tree);
-            gpt.reconstruct(*mesh);
-        }
-        else if (type == 3) {
-            pcl::MarchingCubesHoppe<pcl::PointNormal> mc;
-            mc.setGridResolution(32, 32, 32);
-            mc.setInputCloud(points);
-            mc.setSearchMethod(tree);
-            mc.reconstruct(*mesh);
-        }
-        else if (type == 4) {
-            pcl::MarchingCubesRBF<pcl::PointNormal> mc;
-            mc.setGridResolution(32, 32, 32);
-            mc.setInputCloud(points);
-            mc.setSearchMethod(tree);
-            mc.reconstruct(*mesh);
-        }
-
-        fromPCLPointCloud2(mesh->cloud, *points);
-        for (pcl::PointNormal& point : *points)
-            vertices.push_back(Vertex(point.x, point.y, point.z));
-        for (pcl::Vertices& polygon : mesh->polygons)
-            for (unsigned int vertex : polygon.vertices)
-                indices.push_back(vertex);
-    }
+    for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
+        for (unsigned int index : *iter)
+            indices.push_back(index);
     std::cout << indices.size() / 3 << " facet(s) generated by reconstruction." << std::endl;
 
     return Mesh(vertices, indices);
 }
 
 void PointSet::render() {
-	glPointSize(2);
-	glBindVertexArray(vao);
-	glDrawArrays(GL_POINTS, 0, vertices.size());
-	glBindVertexArray(0);
+    glPointSize(5);
+    glBindVertexArray(vao);
+    glDrawArrays(GL_POINTS, 0, vertices.size());
+    glBindVertexArray(0);
 }

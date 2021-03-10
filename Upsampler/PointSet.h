@@ -51,25 +51,25 @@ typedef SurfaceMesh::Halfedge_index HalfedgeIndex;
 
 class PointSet {
 private:
-	std::vector<Vertex> vertices;
-	unsigned int vao;
-	std::vector<Point> toPoint(std::vector<Vertex>& vertices);
-	std::vector<Vertex> fromPoint(std::vector<Point>& points);
-	std::vector<PointNormal> toPointNormal(std::vector<Vertex>& vertices);
-	std::vector<Vertex> fromPointNormal(std::vector<PointNormal>& points);
-	void calculateNormals();
-	std::vector<PointNormal> filter(std::vector<PointNormal> &points, float threshold);
+    std::vector<Vertex> vertices;
+    unsigned int vao;
+    std::vector<Point> toPoint(std::vector<Vertex>& vertices);
+    std::vector<Vertex> fromPoint(std::vector<Point>& points);
+    std::vector<PointNormal> toPointNormal(std::vector<Vertex>& vertices);
+    std::vector<Vertex> fromPointNormal(std::vector<PointNormal>& points);
+    void calculateNormals();
+    std::vector<PointNormal> filter(std::vector<PointNormal> &points, float threshold);
 
 public:
     PointSet();
-	PointSet(std::vector<Vertex>& vertices);
-	~PointSet();
-	int size();
-	PointSet simplify(double epsilon);
-	PointSet upsample(int k, float threshold, double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size);
-	PointSet smooth(int k = 24);
-	Mesh reconstruct(int type);
-	void render();
+    PointSet(std::vector<Vertex>& vertices);
+    ~PointSet();
+    int size();
+    PointSet simplify(double epsilon);
+    PointSet upsample(double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size);
+    PointSet smooth(int k);
+    Mesh reconstruct(double maximumFacetLength);
+    void render();
 };
 
 #endif
