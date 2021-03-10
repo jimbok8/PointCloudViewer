@@ -43,16 +43,17 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 }
 
 void cursorPosCallback(GLFWwindow* window, double x, double y) {
-    if (press && lastX != INT_MIN && lastY != INT_MIN) {
+    int newX = (int)x, newY = (int)y;
+    if (press && lastX != INT_MIN && lastY != INT_MIN && (newX != lastX || newY != lastY)) {
         glm::vec3 a = glm::normalize(glm::vec3((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f));
-        glm::vec3 b = glm::normalize(glm::vec3((float)x / WINDOW_WIDTH - 0.5f, 0.5f - (float)y / WINDOW_HEIGHT, 1.0f));
+        glm::vec3 b = glm::normalize(glm::vec3((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f));
         glm::vec3 axis = glm::cross(a, b);
         float angle = glm::dot(a, b);
         rotate = glm::rotate(glm::mat4(1.0f), 10.0f * acos(angle), axis) * rotate;
     }
 
-    lastX = (int)x;
-    lastY = (int)y;
+    lastX = newX;
+    lastY = newY;
 }
 
 void scrollCallback(GLFWwindow* window, double x, double y) {

@@ -59,8 +59,8 @@ std::vector<Vertex> PointSet::fromPointNormal(std::vector<PointNormal>& points) 
 
 void PointSet::calculateNormals() {
     std::vector<PointNormal> points = toPointNormal(vertices);
-    CGAL::jet_estimate_normals<CGAL::Sequential_tag>(points, 24, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
-    CGAL::mst_orient_normals(points, 24, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
+    CGAL::jet_estimate_normals<CGAL::Sequential_tag>(points, 50, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
+    CGAL::mst_orient_normals(points, 50, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
 
     for (int i = 0; i < vertices.size(); i++) {
         vertices[i].normal = glm::normalize(glm::vec3(points[i].second.x(), points[i].second.y(), points[i].second.z()));
