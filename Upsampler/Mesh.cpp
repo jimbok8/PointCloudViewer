@@ -65,11 +65,8 @@ void Mesh::calculateNormals() {
     }
 
     for (int i = 0; i < vertices.size(); i++)
-        if (!normals[i].empty()) {
+        if (!normals[i].empty())
             vertices[i].normal = glm::normalize(std::accumulate(normals[i].begin(), normals[i].end(), glm::vec3(0.0f, 0.0f, 0.0f)) / (float) normals[i].size());
-            //if (glm::dot(vertices[i].normal, glm::vec3(0.0f, 0.0f, 100.0f) - vertices[i].position) < 0)
-                //vertices[i].normal = -vertices[i].normal;
-        }
 }
 
 void Mesh::render() {

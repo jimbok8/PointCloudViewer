@@ -14,7 +14,6 @@
 #include "Vertex.h"
 #include "Shader.h"
 #include "PointSet.h"
-#include "Mesh.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
@@ -28,16 +27,12 @@ const glm::vec3 COLORS[] = {
 };
 const int COLOR_SIZE = sizeof(COLORS) / sizeof(glm::vec3);
 
-int lastX = INT_MIN, lastY = INT_MIN;
-float factor = 1.0f;
-bool press;
+int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 1;
+float factor = 1.0f, threshold = 30.0f;
+double epsilon = 2.5;
+bool press, *saves;
 glm::mat4 rotate(1.0f);
-
-int sizeThreshold = 10, numCluster, removeK = 24, smoothK = 30, resolution = 64, type = 0, saveCluster = 0;
-double divideScale = 3.0, removeScale = 2.0, simplifyScale = 2.0;
-float divideThreshold = 30.0f;
-std::vector<PointSet> origins, removes, simplifies, smoothes, divides;
-std::vector<Mesh> meshes;
+std::vector<PointSet> origins, divides;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -73,38 +68,6 @@ void scrollCallback(GLFWwindow* window, double x, double y) {
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-}
-
-void calculate() {
-    std::vector<PointSet>().swap(divides);
-    for (PointSet& set : origins) {
-        std::vector<PointSet> temp = set.divide(divideScale, glm::radians(divideThreshold));
-        for (int i = 0; i < temp.size(); i++)
-            if (temp[i].size() >= sizeThreshold) {
-                std::cout << "Cluster " << i << " contains " << temp[i].size() << " point(s)." << std::endl;
-                divides.push_back(temp[i]);
-            }
-    }
-
-    std::vector<PointSet>().swap(removes);
-    for (PointSet& set : divides)
-        if (set.size() > 0)
-            removes.push_back(set.removeOutliers(removeK, removeScale));
-
-    std::vector<PointSet>().swap(simplifies);
-    for (PointSet& set : removes)
-        if (set.size() > 0)
-            simplifies.push_back(set.simplify(simplifyScale));
-
-    std::vector<PointSet>().swap(smoothes);
-    for (PointSet& set : simplifies)
-        if (set.size() > 0)
-            smoothes.push_back(set.smooth(smoothK));
-
-    std::vector<Mesh>().swap(meshes);
-    for (PointSet& set : smoothes)
-        if (set.size() > 0)
-            meshes.push_back(set.reconstruct(type, resolution));
 }
 
 int main(int argc, char** argv) {
@@ -144,7 +107,7 @@ int main(int argc, char** argv) {
     std::vector<Vertex> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/box_noise.dat");
+    std::ifstream fin("../data/model_with_pool.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -166,9 +129,8 @@ int main(int argc, char** argv) {
         }
         getline(fin, s);
     }
-    float pointScale = std::max(maxX - minX, std::max(maxY - minY, maxZ - minZ));
+    
     numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
-
     glm::vec3 center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     std::vector<std::vector<Vertex>> vertices(numCluster);
     for (int i = 0; i < points.size(); i++) {
@@ -178,9 +140,6 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < numCluster; i++)
         origins.push_back(PointSet(vertices[i]));
-    calculate();
-
-    int display = 0, color = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -196,10 +155,6 @@ int main(int argc, char** argv) {
         if (ImGui::TreeNodeEx("Displaying option", true)) {
             ImGui::RadioButton("Display original point cloud", &display, 0);
             ImGui::RadioButton("Display divided point cloud", &display, 1);
-            ImGui::RadioButton("Display removed point cloud", &display, 2);
-            ImGui::RadioButton("Display simplified point cloud", &display, 3);
-            ImGui::RadioButton("Display smoothed point cloud", &display, 4);
-            ImGui::RadioButton("Display reconstructed mesh", &display, 5);
             ImGui::NewLine();
             ImGui::RadioButton("Color by normal", &color, 0);
             ImGui::RadioButton("Color by cluster", &color, 1);
@@ -211,115 +166,103 @@ int main(int argc, char** argv) {
         if (ImGui::TreeNodeEx("Parameter option", true)) {
             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             if (ImGui::TreeNodeEx("Divide", true)) {
-                ImGui::InputDouble("scale", &divideScale);
-                ImGui::InputFloat("threshold", &divideThreshold);
-                ImGui::InputInt("sizeThreshold", &sizeThreshold);
-                ImGui::TreePop();
-            }
-
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Remove outliers", true)) {
-                ImGui::InputInt("k", &removeK);
-                ImGui::InputDouble("scale", &removeScale);
-                ImGui::TreePop();
-            }
-
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Simplify", true)) {
-                ImGui::InputDouble("scale", &simplifyScale);
-                ImGui::TreePop();
-            }
-
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Smooth", true)) {
-                ImGui::InputInt("k", &smoothK);
-                ImGui::TreePop();
-            }
-
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Reconstruct", true)) {
-                ImGui::InputInt("resolution", &resolution);
-                ImGui::TreePop();
-            }
-
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Reconstruct method", true)) {
-                ImGui::RadioButton("Advancing front surface reconstruction", &type, 0);
-                ImGui::RadioButton("Scale space surface reconstruction", &type, 1);
-                ImGui::RadioButton("Poisson surface reconstruction", &type, 2);
-                ImGui::RadioButton("Greedy projection triangulation", &type, 3);
-                ImGui::RadioButton("Marching cubes Hoppe", &type, 4);
-                ImGui::RadioButton("Marching cubes RBF", &type, 5);
+                ImGui::InputDouble("epsilon", &epsilon);
+                ImGui::InputFloat("threshold", &threshold);
                 ImGui::TreePop();
             }
 
             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             if (ImGui::TreeNodeEx("Save option", true)) {
-                ImGui::InputInt("cluster", &saveCluster);
+                if (divides.size() <= 10)
+                    for (int i = 0; i < divides.size(); i++)
+                        ImGui::Checkbox(("Cluster" + std::to_string(i)).c_str(), &saves[i]);
                 ImGui::TreePop();
             }
 
             ImGui::TreePop();
         }
 
-        if (ImGui::Button("Calculate"))
-            calculate();
-        if (ImGui::Button("Save") && saveCluster < divides.size())
-            divides[saveCluster].save("../data/output.dat");
+        if (ImGui::Button("Divide")) {
+            std::vector<PointSet>().swap(divides);
+            for (PointSet& set : origins) {
+                std::vector<PointSet> temp = set.divide(epsilon, glm::radians(threshold));
+                for (int i = 0; i < temp.size(); i++) {
+                    std::cout << "Cluster " << i << " contains " << temp[i].size() << " point(s)." << std::endl;
+                    divides.push_back(temp[i]);
+                }
+            }
+            delete saves;
+            saves = new bool[divides.size()];
+            memset(saves, false, sizeof(bool) * divides.size());
+        }
+        if (ImGui::Button("Save")) {
+            std::vector<std::vector<Vertex>> vertices;
+            for (int i = 0; i < divides.size(); i++)
+                if (saves[i])
+                    vertices.push_back(divides[i].getVertices());
 
-        glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 1.5f * pointScale);
+            std::ofstream fout("../data/output.dat");
+            for (int i = 0; i < vertices.size(); i++)
+                for (Vertex& vertex : vertices[i])
+                    fout << "v " << vertex.position.x << ' ' << vertex.position.y << ' ' << vertex.position.z << ' ' << i << " 0" << std::endl;
+        }
+
+        glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         glm::mat4 modelMat, viewMat, projectionMat;
         modelMat = glm::scale(rotate, glm::vec3(factor));
         viewMat = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projectionMat = glm::perspective((float)M_PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
-        if (color == 0) {
+        switch (color) {
+        case 0:
             normalShader.use();
             normalShader.setMat4("model", modelMat);
             normalShader.setMat4("view", viewMat);
             normalShader.setMat4("projection", projectionMat);
             normalShader.setVec3("lightDirection", lightDirection);
             normalShader.setVec3("cameraPosition", cameraPosition);
-        }
-        else if (color == 1) {
+            switch (display) {
+            case 0:
+                for (int i = 0; i < origins.size(); i++)
+                    origins[i].render();
+                break;
+            case 1:
+                for (int i = 0; i < divides.size(); i++)
+                    divides[i].render();
+                break;
+            default:
+                break;
+            }
+            break;
+
+        case 1:
             clusterShader.use();
             clusterShader.setMat4("model", modelMat);
             clusterShader.setMat4("view", viewMat);
             clusterShader.setMat4("projection", projectionMat);
             clusterShader.setVec3("lightDirection", lightDirection);
             clusterShader.setVec3("cameraPosition", cameraPosition);
-        }
+            switch (display) {
+            case 0:
+                for (int i = 0; i < origins.size(); i++) {
+                    clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
+                    origins[i].render();
+                }
+                break;
+            case 1:
+                for (int i = 0; i < divides.size(); i++) {
+                    clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
+                    divides[i].render();
+                }
+                break;
+            default:
+                break;
+            }
+            break;
 
-        if (display == 0)
-            for (unsigned int i = 0; i < origins.size(); i++) {
-                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                origins[i].render();
-            }
-        else if (display == 1)
-            for (unsigned int i = 0; i < divides.size(); i++) {
-                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                divides[i].render();
-            }
-        else if (display == 2)
-            for (unsigned int i = 0; i < removes.size(); i++) {
-                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                removes[i].render();
-            }
-        else if (display == 3)
-            for (unsigned int i = 0; i < simplifies.size(); i++) {
-                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                simplifies[i].render();
-            }
-        else if (display == 4)
-            for (unsigned int i = 0; i < smoothes.size(); i++) {
-                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                smoothes[i].render();
-            }
-        else if (display == 5)
-            for (unsigned int i = 0; i < meshes.size(); i++) {
-                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                meshes[i].render();
-            }
+        default:
+            break;
+        }
 
         ImGui::End();
 
