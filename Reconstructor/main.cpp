@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -10,13 +11,16 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_impl_opengl3.h>
 
 #include "Vertex.h"
 #include "Shader.h"
 #include "PointSet.h"
+#include "Mesh.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
+const float PI = std::acos(-1);
 const glm::vec3 COLORS[] = {
     glm::vec3(1.0f, 0.0f, 0.0f),
     glm::vec3(0.0f, 1.0f, 0.0f),
@@ -27,12 +31,13 @@ const glm::vec3 COLORS[] = {
 };
 const int COLOR_SIZE = sizeof(COLORS) / sizeof(glm::vec3);
 
-int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 1;
-float factor = 1.0f, threshold = 30.0f;
-double epsilon = 2.5;
-bool press, *saves;
+int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluster = 0, size = 10000, k = 64;
+float factor = 1.0f;
+double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
+bool press, *simplified, *upsampled, *smoothed, *reconstructed;
 glm::mat4 rotate(1.0f);
-std::vector<PointSet> origins, divides;
+std::vector<PointSet> origins, simplifies, upsamples, smoothes;
+std::vector<Mesh> reconstruct;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -75,8 +80,8 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "PointCloudViewer", NULL, NULL);
-    if (window == NULL) {
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "PointCloudViewer", nullptr, nullptr);
+    if (window == nullptr) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
@@ -107,7 +112,7 @@ int main(int argc, char** argv) {
     std::vector<Vertex> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/model_with_pool.dat");
+    std::ifstream fin("../data/pool.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -116,6 +121,7 @@ int main(int argc, char** argv) {
             float x, y, z, weight;
             int cluster;
             fin >> x >> y >> z >> cluster >> weight;
+            weight = log(weight);
 
             minX = std::min(minX, x);
             maxX = std::max(maxX, x);
@@ -129,7 +135,7 @@ int main(int argc, char** argv) {
         }
         getline(fin, s);
     }
-    
+
     numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
     glm::vec3 center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     std::vector<std::vector<Vertex>> vertices(numCluster);
@@ -140,6 +146,18 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < numCluster; i++)
         origins.push_back(PointSet(vertices[i]));
+    simplified = new bool[numCluster];
+    memset(simplified, false, numCluster * sizeof(bool));
+    simplifies = std::vector<PointSet>(numCluster);
+    upsampled = new bool[numCluster];
+    memset(upsampled, false, numCluster * sizeof(bool));
+    upsamples = std::vector<PointSet>(numCluster);
+    smoothed = new bool[numCluster];
+    memset(smoothed, false, numCluster * sizeof(bool));
+    smoothes = std::vector<PointSet>(numCluster);
+    reconstructed = new bool[numCluster];
+    memset(reconstructed, false, numCluster * sizeof(bool));
+    reconstruct = std::vector<Mesh>(numCluster);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -152,9 +170,12 @@ int main(int argc, char** argv) {
         ImGui::Begin("Options");
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Displaying option", true)) {
+        if (ImGui::TreeNodeEx("Displaying options", true)) {
             ImGui::RadioButton("Display original point cloud", &display, 0);
-            ImGui::RadioButton("Display divided point cloud", &display, 1);
+            ImGui::RadioButton("Display simplified point cloud", &display, 1);
+            ImGui::RadioButton("Display upsampled point cloud", &display, 2);
+            ImGui::RadioButton("Display smoothed point cloud", &display, 3);
+            ImGui::RadioButton("Display reconstructed mesh", &display, 4);
             ImGui::NewLine();
             ImGui::RadioButton("Color by normal", &color, 0);
             ImGui::RadioButton("Color by cluster", &color, 1);
@@ -162,56 +183,61 @@ int main(int argc, char** argv) {
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-
-        if (ImGui::TreeNodeEx("Parameter option", true)) {
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Divide", true)) {
-                ImGui::InputDouble("epsilon", &epsilon);
-                ImGui::InputFloat("threshold", &threshold);
-                ImGui::TreePop();
-            }
-
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::TreeNodeEx("Save option", true)) {
-                if (divides.size() <= 10)
-                    for (int i = 0; i < divides.size(); i++)
-                        ImGui::Checkbox(("Cluster" + std::to_string(i)).c_str(), &saves[i]);
-                ImGui::TreePop();
-            }
-
+        if (ImGui::TreeNodeEx("Cluster options", true)) {
+            for (int i = 0; i < numCluster; i++)
+                ImGui::RadioButton(("Cluster " + std::to_string(i)).c_str(), &cluster, i);
             ImGui::TreePop();
         }
 
-        if (ImGui::Button("Divide")) {
-            std::vector<PointSet>().swap(divides);
-            for (PointSet& set : origins) {
-                std::vector<PointSet> temp = set.divide(epsilon, glm::radians(threshold));
-                for (int i = 0; i < temp.size(); i++) {
-                    std::cout << "Cluster " << i << " contains " << temp[i].size() << " point(s)." << std::endl;
-                    divides.push_back(temp[i]);
-                }
-            }
-            delete saves;
-            saves = new bool[divides.size()];
-            memset(saves, false, sizeof(bool) * divides.size());
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Simplifying options", true)) {
+            ImGui::InputDouble("epsilon", &epsilon);
+            ImGui::TreePop();
         }
-        if (ImGui::Button("Save")) {
-            std::vector<std::vector<Vertex>> vertices;
-            for (int i = 0; i < divides.size(); i++)
-                if (saves[i])
-                    vertices.push_back(divides[i].getVertices());
 
-            std::ofstream fout("../data/output.dat");
-            for (int i = 0; i < vertices.size(); i++)
-                for (Vertex& vertex : vertices[i])
-                    fout << "v " << vertex.position.x << ' ' << vertex.position.y << ' ' << vertex.position.z << ' ' << i << " 0" << std::endl;
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Upsampling options", true)) {
+            ImGui::InputDouble("sharpnessAngle", &sharpnessAngle);
+            ImGui::InputDouble("edgeSensitivity", &edgeSensitivity);
+            ImGui::InputDouble("neighborRadius", &neighborRadius);
+            ImGui::InputInt("size", &size);
+            ImGui::TreePop();
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Smoothing options", true)) {
+            ImGui::InputInt("k", &k);
+            ImGui::TreePop();
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Reconstructing options", true)) {
+            ImGui::InputDouble("maximumFacetLength", &maximumFacetLength);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::Button("Simplify")) {
+            simplifies[cluster] = origins[cluster].simplify(epsilon);
+            simplified[cluster] = true;
+        }
+        if (ImGui::Button("Upsample") && simplified[cluster]) {
+            upsamples[cluster] = simplifies[cluster].upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
+            upsampled[cluster] = true;
+        }
+        if (ImGui::Button("Smooth") && upsampled[cluster]) {
+            smoothes[cluster] = upsamples[cluster].smooth(k);
+            smoothed[cluster] = true;
+        }
+        if (ImGui::Button("Reconstruct") && smoothed[cluster]) {
+            reconstruct[cluster] = smoothes[cluster].reconstruct(maximumFacetLength);
+            reconstructed[cluster] = true;
         }
 
         glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         glm::mat4 modelMat, viewMat, projectionMat;
         modelMat = glm::scale(rotate, glm::vec3(factor));
         viewMat = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        projectionMat = glm::perspective((float)M_PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+        projectionMat = glm::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
         switch (color) {
         case 0:
@@ -221,17 +247,17 @@ int main(int argc, char** argv) {
             normalShader.setMat4("projection", projectionMat);
             normalShader.setVec3("lightDirection", lightDirection);
             normalShader.setVec3("cameraPosition", cameraPosition);
-            switch (display) {
-            case 0:
-                for (int i = 0; i < origins.size(); i++)
+            for (int i = 0; i < numCluster; i++) {
+                if (display == 4 && reconstructed[i])
+                    reconstruct[i].render();
+                else if (display == 3 && smoothed[i])
+                    smoothes[i].render();
+                else if (display == 2 && upsampled[i])
+                    upsamples[i].render();
+                else if (display == 1 && simplified[i])
+                    simplifies[i].render();
+                else
                     origins[i].render();
-                break;
-            case 1:
-                for (int i = 0; i < divides.size(); i++)
-                    divides[i].render();
-                break;
-            default:
-                break;
             }
             break;
 
@@ -242,21 +268,18 @@ int main(int argc, char** argv) {
             clusterShader.setMat4("projection", projectionMat);
             clusterShader.setVec3("lightDirection", lightDirection);
             clusterShader.setVec3("cameraPosition", cameraPosition);
-            switch (display) {
-            case 0:
-                for (int i = 0; i < origins.size(); i++) {
-                    clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
+            for (int i = 0; i < numCluster; i++) {
+                clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
+                if (display == 4 && reconstructed[i])
+                    reconstruct[i].render();
+                else if (display == 3 && smoothed[i])
+                    smoothes[i].render();
+                else if (display == 2 && upsampled[i])
+                    upsamples[i].render();
+                else if (display == 1 && simplified[i])
+                    simplifies[i].render();
+                else
                     origins[i].render();
-                }
-                break;
-            case 1:
-                for (int i = 0; i < divides.size(); i++) {
-                    clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
-                    divides[i].render();
-                }
-                break;
-            default:
-                break;
             }
             break;
 
