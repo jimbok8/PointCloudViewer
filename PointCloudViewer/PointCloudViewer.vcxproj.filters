@@ -27,6 +27,12 @@
     <ClCompile Include="Matrix4D.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Point.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PointSet.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
@@ -38,5 +44,25 @@
     <ClInclude Include="Matrix4D.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Point.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PointSet.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\ClusterFragment.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\ClusterVertex.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\NormalFragment.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\NormalVertex.glsl">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

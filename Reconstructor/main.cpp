@@ -37,7 +37,7 @@ double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadi
 bool press, *simplified, *upsampled, *smoothed, *reconstructed;
 glm::mat4 rotate(1.0f);
 std::vector<PointSet> origins, simplifies, upsamples, smoothes;
-std::vector<Mesh> reconstruct;
+std::vector<Mesh> reconstructs;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     smoothes = std::vector<PointSet>(numCluster);
     reconstructed = new bool[numCluster];
     memset(reconstructed, false, numCluster * sizeof(bool));
-    reconstruct = std::vector<Mesh>(numCluster);
+    reconstructs = std::vector<Mesh>(numCluster);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -229,7 +229,7 @@ int main(int argc, char** argv) {
             smoothed[cluster] = true;
         }
         if (ImGui::Button("Reconstruct") && smoothed[cluster]) {
-            reconstruct[cluster] = smoothes[cluster].reconstruct(maximumFacetLength);
+            reconstructs[cluster] = smoothes[cluster].reconstruct(maximumFacetLength);
             reconstructed[cluster] = true;
         }
 
@@ -247,9 +247,9 @@ int main(int argc, char** argv) {
             normalShader.setMat4("projection", projectionMat);
             normalShader.setVec3("lightDirection", lightDirection);
             normalShader.setVec3("cameraPosition", cameraPosition);
-            for (int i = 0; i < numCluster; i++) {
+            for (int i = 0; i < numCluster; i++)
                 if (display == 4 && reconstructed[i])
-                    reconstruct[i].render();
+                    reconstructs[i].render();
                 else if (display == 3 && smoothed[i])
                     smoothes[i].render();
                 else if (display == 2 && upsampled[i])
@@ -258,7 +258,6 @@ int main(int argc, char** argv) {
                     simplifies[i].render();
                 else
                     origins[i].render();
-            }
             break;
 
         case 1:
@@ -271,7 +270,7 @@ int main(int argc, char** argv) {
             for (int i = 0; i < numCluster; i++) {
                 clusterShader.setVec3("color", COLORS[i % COLOR_SIZE]);
                 if (display == 4 && reconstructed[i])
-                    reconstruct[i].render();
+                    reconstructs[i].render();
                 else if (display == 3 && smoothed[i])
                     smoothes[i].render();
                 else if (display == 2 && upsampled[i])
@@ -295,6 +294,11 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    delete[] simplified;
+    delete[] upsampled;
+    delete[] smoothed;
+    delete[] reconstructed;
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

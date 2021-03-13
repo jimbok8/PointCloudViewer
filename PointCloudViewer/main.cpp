@@ -14,28 +14,28 @@
 #include "Vector3D.h"
 #include "Matrix4D.h"
 #include "Point.h"
-#include "Shader.h"
 #include "PointSet.h"
+#include "Shader.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1);
-const Vector3D* COLORS[] = {
-    new Vector3D(1.0f, 0.0f, 0.0f),
-    new Vector3D(0.0f, 1.0f, 0.0f),
-    new Vector3D(0.0f, 0.0f, 1.0f),
-    new Vector3D(0.0f, 1.0f, 1.0f),
-    new Vector3D(1.0f, 0.0f, 1.0f),
-    new Vector3D(1.0f, 1.0f, 0.0f)
+const Vector3D COLORS[] = {
+    Vector3D(1.0f, 0.0f, 0.0f),
+    Vector3D(0.0f, 1.0f, 0.0f),
+    Vector3D(0.0f, 0.0f, 1.0f),
+    Vector3D(0.0f, 1.0f, 1.0f),
+    Vector3D(1.0f, 0.0f, 1.0f),
+    Vector3D(1.0f, 1.0f, 0.0f)
 };
-const int COLOR_SIZE = sizeof(COLORS) / sizeof(Vector3D*);
+const int COLOR_SIZE = sizeof(COLORS) / sizeof(Vector3D);
 
 int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluster = 0, size = 10000, k = 64;
 float factor = 1.0f;
 double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
-bool press;
+bool press/*, * simplified, * upsampled, * smoothed, * reconstructed*/;
 Matrix4D rotate(1.0f);
-std::vector<PointSet*> origins/*, simplifies, upsamples, smoothes*/;
+std::vector<PointSet> origins/*, simplifies, upsamples, smoothes*/;
 //std::vector<Mesh> reconstructs;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -54,11 +54,11 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 void cursorPosCallback(GLFWwindow* window, double x, double y) {
     int newX = (int)x, newY = (int)y;
     if (press && lastX != INT_MIN && lastY != INT_MIN && (newX != lastX || newY != lastY)) {
-        glm::vec3 a = glm::normalize(glm::vec3((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f));
-        glm::vec3 b = glm::normalize(glm::vec3((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f));
-        glm::vec3 axis = glm::cross(a, b);
-        float angle = glm::dot(a, b);
-        rotate = glm::rotate(glm::mat4(1.0f), 10.0f * acos(angle), axis) * rotate;
+        Vector3D a = Vector3D((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f).normalize();
+        Vector3D b = Vector3D((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalize();
+        Vector3D axis = a.cross(b);
+        float angle = a.dot(b);
+        rotate = Matrix4D::rotate(axis, 10.0f * std::acos(angle));
     }
 
     lastX = newX;
@@ -130,26 +130,35 @@ int main(int argc, char** argv) {
             minZ = std::min(minZ, z);
             maxZ = std::max(maxZ, z);
 
-            points.push_back(Point(x, y, z));
+            Vector3D position(x, y, z);
+            points.push_back(position);
             clusters.push_back(cluster);
         }
         getline(fin, s);
     }
 
     numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
-    glm::vec3 center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
+    Vector3D center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     std::vector<std::vector<Point>> vertices(numCluster);
     for (int i = 0; i < points.size(); i++) {
-        points[i].position -= center;
+        points[i].position = points[i].position - center;
         vertices[clusters[i]].push_back(points[i]);
     }
 
     for (int i = 0; i < numCluster; i++)
-        origins.push_back(new PointSet(vertices[i]));
-    /*simplifies = std::vector<PointSet*>(numCluster, nullptr);
-    upsamples = std::vector<PointSet*>(numCluster, nullptr);
-    smoothes = std::vector<PointSet*>(numCluster, nullptr);
-    reconstruct = std::vector<Mesh*>(numCluster, nullptr);*/
+        origins.push_back(PointSet(vertices[i]));
+    /*simplified = new bool[numCluster];
+    memset(simplified, false, numCluster * sizeof(bool));
+    simplifies = std::vector<PointSet>(numCluster);
+    upsampled = new bool[numCluster];
+    memset(upsampled, false, numCluster * sizeof(bool));
+    upsamples = std::vector<PointSet>(numCluster);
+    smoothed = new bool[numCluster];
+    memset(smoothed, false, numCluster * sizeof(bool));
+    smoothes = std::vector<PointSet>(numCluster);
+    reconstructed = new bool[numCluster];
+    memset(reconstructed, false, numCluster * sizeof(bool));
+    reconstructs = std::vector<Mesh>(numCluster);*/
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -208,20 +217,28 @@ int main(int argc, char** argv) {
             ImGui::TreePop();
         }
 
-       /* if (ImGui::Button("Simplify"))
-            simplifies[cluster] = origins[cluster]->simplify(epsilon);
-        if (ImGui::Button("Upsample") && simplifies[cluster] != nullptr)
-            upsamples[cluster] = simplifies[cluster]->upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
-        if (ImGui::Button("Smooth") && upsamples[cluster] != nullptr)
-            smoothes[cluster] = upsamples[cluster]->smooth(k);
-        if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
-            reconstructs[cluster] = smoothes[cluster]->reconstruct(maximumFacetLength);*/
+        /*if (ImGui::Button("Simplify")) {
+            simplifies[cluster] = origins[cluster].simplify(epsilon);
+            simplified[cluster] = true;
+        }
+        if (ImGui::Button("Upsample") && simplified[cluster]) {
+            upsamples[cluster] = simplifies[cluster].upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
+            upsampled[cluster] = true;
+        }
+        if (ImGui::Button("Smooth") && upsampled[cluster]) {
+            smoothes[cluster] = upsamples[cluster].smooth(k);
+            smoothed[cluster] = true;
+        }
+        if (ImGui::Button("Reconstruct") && smoothed[cluster]) {
+            reconstructs[cluster] = smoothes[cluster].reconstruct(maximumFacetLength);
+            reconstructed[cluster] = true;
+        }*/
 
-        glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
-        glm::mat4 modelMat, viewMat, projectionMat;
-        modelMat = glm::scale(rotate, glm::vec3(factor));
-        viewMat = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        projectionMat = glm::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+        Vector3D lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
+        Matrix4D modelMat, viewMat, projectionMat;
+        modelMat = rotate * factor;
+        viewMat = Matrix4D::lookAt(cameraPosition, Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
+        projectionMat = Matrix4D::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
         switch (color) {
         case 0:
@@ -232,16 +249,16 @@ int main(int argc, char** argv) {
             normalShader.setVector3D("lightDirection", lightDirection);
             normalShader.setVector3D("cameraPosition", cameraPosition);
             for (int i = 0; i < numCluster; i++)
-                //if (display == 4 && reconstructs[i] != nullptr)
-                //    reconstruct[i]->render();
-                //else if (display == 3 && smoothes[i] != nullptr)
-                //    smoothes[i]->render();
-                //else if (display == 2 && upsamples[i] != nullptr)
-                //    upsamples[i]->render();
-                //else if (display == 1 && simplifies[i] != nullptr)
-                //    simplifies[i]->render();
-                //else
-                    origins[i]->render();
+                /*if (display == 4 && reconstructed[i])
+                    reconstructs[i].render();
+                else if (display == 3 && smoothed[i])
+                    smoothes[i].render();
+                else if (display == 2 && upsampled[i])
+                    upsamples[i].render();
+                else if (display == 1 && simplified[i])
+                    simplifies[i].render();
+                else*/
+                    origins[i].render();
             break;
 
         case 1:
@@ -253,16 +270,16 @@ int main(int argc, char** argv) {
             clusterShader.setVector3D("cameraPosition", cameraPosition);
             for (int i = 0; i < numCluster; i++) {
                 clusterShader.setVector3D("color", COLORS[i % COLOR_SIZE]);
-                //if (display == 4 && reconstructs[i] != nullptr)
-                //    reconstruct[i]->render();
-                //else if (display == 3 && smoothes[i] != nullptr)
-                //    smoothes[i]->render();
-                //else if (display == 2 && upsamples[i] != nullptr)
-                //    upsamples[i]->render();
-                //else if (display == 1 && simplifies[i] != nullptr)
-                //    simplifies[i]->render();
-                //else
-                    origins[i]->render();
+                /*if (display == 4 && reconstructed[i])
+                    reconstructs[i].render();
+                else if (display == 3 && smoothed[i])
+                    smoothes[i].render();
+                else if (display == 2 && upsampled[i])
+                    upsamples[i].render();
+                else if (display == 1 && simplified[i])
+                    simplifies[i].render();
+                else*/
+                    origins[i].render();
             }
             break;
 
@@ -278,6 +295,11 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    //delete[] simplified;
+    //delete[] upsampled;
+    //delete[] smoothed;
+    //delete[] reconstructed;
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

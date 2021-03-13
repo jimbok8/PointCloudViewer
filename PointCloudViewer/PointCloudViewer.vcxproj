@@ -141,13 +141,23 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Matrix4D.cpp" />
+    <ClCompile Include="Point.cpp" />
+    <ClCompile Include="PointSet.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Vector3D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Matrix4D.h" />
+    <ClInclude Include="Point.h" />
+    <ClInclude Include="PointSet.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Vector3D.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\ClusterFragment.glsl" />
+    <None Include="shader\ClusterVertex.glsl" />
+    <None Include="shader\NormalFragment.glsl" />
+    <None Include="shader\NormalVertex.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
