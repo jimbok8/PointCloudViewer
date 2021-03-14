@@ -37,7 +37,7 @@ float Vector3D::dot(const Vector3D& v) const {
 }
 
 Vector3D Vector3D::cross(const Vector3D& v) const {
-    return Vector3D(values[1] * v.values[2] - values[2] - v.values[1],
+    return Vector3D(values[1] * v.values[2] - values[2] * v.values[1],
         values[2] * v.values[0] - values[0] * v.values[2],
         values[0] * v.values[1] - values[1] * v.values[0]);
 }

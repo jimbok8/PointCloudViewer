@@ -25,11 +25,9 @@ Matrix4D Matrix4D::operator *(const float x) const {
 Matrix4D Matrix4D::operator *(const Matrix4D& m) const {
     Matrix4D ans;
     for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++) {
-            ans.values[i][j] = 0.0f;
+        for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
                 ans.values[i][j] += values[i][k] * m.values[k][j];
-        }
     return ans;
 }
 

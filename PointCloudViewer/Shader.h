@@ -14,14 +14,14 @@
 class Shader {
 private:
     unsigned int program;
-    int processShader(const std::string& path, const unsigned int type, bool& success) const;
+    int processShader(const std::string& path, const unsigned int type, bool& success);
 
 public:
     Shader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, const std::string& geometryShaderPath = "");
     ~Shader();
-    void use() const;
-    void setVector3D(const std::string& name, const Vector3D& value) const;
-    void setMatrix4D(const std::string& name, const Matrix4D& value) const;
+    void use();
+    void setVector3D(const std::string& name, const Vector3D& value);
+    void setMatrix4D(const std::string& name, const Matrix4D& value);
 };
 
 #endif

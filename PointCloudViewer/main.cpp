@@ -11,6 +11,9 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_opengl3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "Vector3D.h"
 #include "Matrix4D.h"
 #include "Point.h"
@@ -58,7 +61,7 @@ void cursorPosCallback(GLFWwindow* window, double x, double y) {
         Vector3D b = Vector3D((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalize();
         Vector3D axis = a.cross(b);
         float angle = a.dot(b);
-        rotate = Matrix4D::rotate(axis, 10.0f * std::acos(angle));
+        rotate = Matrix4D::rotate(axis, 10.0f * std::acos(angle)) * rotate;
     }
 
     lastX = newX;
@@ -130,8 +133,7 @@ int main(int argc, char** argv) {
             minZ = std::min(minZ, z);
             maxZ = std::max(maxZ, z);
 
-            Vector3D position(x, y, z);
-            points.push_back(position);
+            points.push_back(Point(Vector3D(x, y, z), Vector3D(1.0f, 0.0f, 0.0f)));
             clusters.push_back(cluster);
         }
         getline(fin, s);
@@ -160,6 +162,7 @@ int main(int argc, char** argv) {
     memset(reconstructed, false, numCluster * sizeof(bool));
     reconstructs = std::vector<Mesh>(numCluster);*/
 
+    std::cout << numCluster << std::endl;
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -239,6 +242,9 @@ int main(int argc, char** argv) {
         modelMat = rotate * factor;
         viewMat = Matrix4D::lookAt(cameraPosition, Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
         projectionMat = Matrix4D::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+
+        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 projection = glm::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
         switch (color) {
         case 0:

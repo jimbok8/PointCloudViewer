@@ -13,9 +13,9 @@ private:
     unsigned int vao;
 
 public:
-    PointSet(std::vector<Point> points);
+    PointSet(const std::vector<Point>& points);
     ~PointSet();
-    void render() const;
+    void render();
 };
 
 #endif

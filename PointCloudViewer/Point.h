@@ -6,8 +6,8 @@
 class Point {
 public:
     Vector3D position, normal;
-    Point(Vector3D& position);
-    Point(Vector3D& position, Vector3D& normal);
+    Point(const Vector3D& position);
+    Point(const Vector3D& position, const Vector3D& normal);
     ~Point();
 };
 

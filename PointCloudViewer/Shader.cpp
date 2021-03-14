@@ -50,7 +50,7 @@ Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentS
 
 Shader::~Shader() {}
 
-int Shader::processShader(const std::string& path, const unsigned int type, bool& success) const {
+int Shader::processShader(const std::string& path, const unsigned int type, bool& success) {
     std::ifstream fileStream(path);
     if (!(success = fileStream.is_open())) {
         std::cerr << "Failed to open shader file " << path << std::endl;
@@ -78,14 +78,14 @@ int Shader::processShader(const std::string& path, const unsigned int type, bool
     return shader;
 }
 
-void Shader::use() const {
+void Shader::use() {
     glUseProgram(program);
 }
 
-void Shader::setVector3D(const std::string& name, const Vector3D& value) const {
+void Shader::setVector3D(const std::string& name, const Vector3D& value) {
     glUniform3fv(glGetUniformLocation(program, name.c_str()), 1, &value.values[0]);
 }
 
-void Shader::setMatrix4D(const std::string& name, const Matrix4D& value) const {
+void Shader::setMatrix4D(const std::string& name, const Matrix4D& value) {
     glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE, &value.values[0][0]);
 }

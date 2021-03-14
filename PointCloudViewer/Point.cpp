@@ -1,10 +1,10 @@
 #include "Point.h"
 
-Point::Point(Vector3D& position) :
+Point::Point(const Vector3D& position) :
     position(position),
     normal(0.0f, 0.0f, 0.0f) {}
 
-Point::Point(Vector3D& position, Vector3D& normal) :
+Point::Point(const Vector3D& position, const Vector3D& normal) :
     position(position),
     normal(normal) {}
 
