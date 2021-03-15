@@ -19,7 +19,7 @@ Matrix4D Matrix4D::operator *(const Matrix4D& m) const {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
-                ans.values[i][j] += values[i][k] * m.values[k][j];
+                ans.values[i][j] += m.values[i][k] * values[k][j];
     return ans;
 }
 
