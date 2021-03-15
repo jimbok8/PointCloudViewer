@@ -8,7 +8,7 @@ points(points) {
 
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, this->points.size() * sizeof(Point), points.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, this->points.size() * sizeof(Point), this->points.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
@@ -20,7 +20,7 @@ points(points) {
 
 PointSet::~PointSet() {}
 
-void PointSet::render() {
+void PointSet::render() const {
     glPointSize(5);
     glBindVertexArray(vao);
     glDrawArrays(GL_POINTS, 0, points.size());

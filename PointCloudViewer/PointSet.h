@@ -15,7 +15,7 @@ private:
 public:
     PointSet(const std::vector<Point>& points);
     ~PointSet();
-    void render();
+    void render() const;
 };
 
 #endif

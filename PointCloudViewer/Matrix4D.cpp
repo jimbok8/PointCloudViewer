@@ -10,17 +10,9 @@ Matrix4D::Matrix4D(const float x) :
     values{{x, 0.0f, 0.0f, 0.0f},
         {0.0f, x, 0.0f, 0.0f},
         {0.0f, 0.0f, x, 0.0f},
-        {0.0f, 0.0f, 0.0f, x}} {}
+        {0.0f, 0.0f, 0.0f, 1.0f}} {}
 
 Matrix4D::~Matrix4D() {}
-
-Matrix4D Matrix4D::operator *(const float x) const {
-    Matrix4D ans;
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            ans.values[i][j] = values[i][j] * x;
-    return ans;
-}
 
 Matrix4D Matrix4D::operator *(const Matrix4D& m) const {
     Matrix4D ans;
@@ -38,15 +30,15 @@ Matrix4D Matrix4D::rotate(const Vector3D& v, const float angle) {
 
     Matrix4D ans;
     ans.values[0][0] = (1.0f - c) * axis.values[0] * axis.values[0] + c;
-    ans.values[0][1] = (1.0f - c) * axis.values[0] * axis.values[1] - s * axis.values[2];
-    ans.values[0][2] = (1.0f - c) * axis.values[0] * axis.values[2] + s * axis.values[1];
+    ans.values[0][1] = (1.0f - c) * axis.values[0] * axis.values[1] + s * axis.values[2];
+    ans.values[0][2] = (1.0f - c) * axis.values[0] * axis.values[2] - s * axis.values[1];
 
-    ans.values[1][0] = (1.0f - c) * axis.values[1] * axis.values[0] + s * axis.values[2];
+    ans.values[1][0] = (1.0f - c) * axis.values[1] * axis.values[0] - s * axis.values[2];
     ans.values[1][1] = (1.0f - c) * axis.values[1] * axis.values[1] + c;
-    ans.values[1][2] = (1.0f - c) * axis.values[1] * axis.values[2] - s * axis.values[0];
+    ans.values[1][2] = (1.0f - c) * axis.values[1] * axis.values[2] + s * axis.values[0];
 
-    ans.values[2][0] = (1.0f - c) * axis.values[2] * axis.values[0] - s * axis.values[1];
-    ans.values[2][1] = (1.0f - c) * axis.values[2] * axis.values[1] + s * axis.values[0];
+    ans.values[2][0] = (1.0f - c) * axis.values[2] * axis.values[0] + s * axis.values[1];
+    ans.values[2][1] = (1.0f - c) * axis.values[2] * axis.values[1] - s * axis.values[0];
     ans.values[2][2] = (1.0f - c) * axis.values[2] * axis.values[2] + c;
 
     ans.values[3][3] = 1;
@@ -75,6 +67,7 @@ Matrix4D Matrix4D::lookAt(const Vector3D& camera, const Vector3D& center, const 
     ans.values[3][0] = -s.dot(camera);
     ans.values[3][1] = -u.dot(camera);
     ans.values[3][2] = f.dot(camera);
+    ans.values[3][3] = 1.0f;
 
     return ans;
 }

@@ -12,7 +12,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "Vector3D.h"
 #include "Matrix4D.h"
@@ -38,6 +38,7 @@ float factor = 1.0f;
 double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
 bool press/*, * simplified, * upsampled, * smoothed, * reconstructed*/;
 Matrix4D rotate(1.0f);
+glm::mat4 rotateT(1.0f);
 std::vector<PointSet> origins/*, simplifies, upsamples, smoothes*/;
 //std::vector<Mesh> reconstructs;
 
@@ -62,6 +63,12 @@ void cursorPosCallback(GLFWwindow* window, double x, double y) {
         Vector3D axis = a.cross(b);
         float angle = a.dot(b);
         rotate = Matrix4D::rotate(axis, 10.0f * std::acos(angle)) * rotate;
+
+        glm::vec3 aT = glm::normalize(glm::vec3((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f));
+        glm::vec3 bT = glm::normalize(glm::vec3((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f));
+        glm::vec3 axisT = glm::cross(aT, bT);
+        float angleT = glm::dot(aT, bT);
+        rotateT = glm::rotate(glm::mat4(1.0f), 10.0f * acos(angleT), axisT) * rotateT;
     }
 
     lastX = newX;
@@ -133,7 +140,7 @@ int main(int argc, char** argv) {
             minZ = std::min(minZ, z);
             maxZ = std::max(maxZ, z);
 
-            points.push_back(Point(Vector3D(x, y, z), Vector3D(1.0f, 0.0f, 0.0f)));
+            points.push_back(Point(Vector3D(x, y, z)));
             clusters.push_back(cluster);
         }
         getline(fin, s);
@@ -162,7 +169,6 @@ int main(int argc, char** argv) {
     memset(reconstructed, false, numCluster * sizeof(bool));
     reconstructs = std::vector<Mesh>(numCluster);*/
 
-    std::cout << numCluster << std::endl;
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -239,12 +245,23 @@ int main(int argc, char** argv) {
 
         Vector3D lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         Matrix4D modelMat, viewMat, projectionMat;
-        modelMat = rotate * factor;
+        modelMat = rotate * Matrix4D(factor);
+        glm::mat4 modelMatT = glm::scale(rotateT, glm::vec3(factor));
         viewMat = Matrix4D::lookAt(cameraPosition, Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
         projectionMat = Matrix4D::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
-        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 projection = glm::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++)
+                std::cout << rotate.values[i][j] << ' ';
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++)
+                std::cout << rotateT[i][j] << ' ';
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
 
         switch (color) {
         case 0:
