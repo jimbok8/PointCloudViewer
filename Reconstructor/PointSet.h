@@ -10,10 +10,12 @@
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/jet_estimate_normals.h>
+#include <CGAL/pca_estimate_normals.h>
 #include <CGAL/mst_orient_normals.h>
 #include <CGAL/grid_simplify_point_set.h>
 #include <CGAL/edge_aware_upsample_point_set.h>
 #include <CGAL/jet_smooth_point_set.h>
+#include <CGAL/bilateral_smooth_point_set.h>
 #include <CGAL/Advancing_front_surface_reconstruction.h>
 #include <CGAL/Scale_space_surface_reconstruction_3.h>
 #include <CGAL/Scale_space_reconstruction_3/Jet_smoother.h>

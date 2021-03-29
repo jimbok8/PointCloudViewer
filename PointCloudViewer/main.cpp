@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 
+#include <Eigen/Dense>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -11,8 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_opengl3.h>
 
-#include "Vector3D.h"
-#include "Matrix4D.h"
+#include "TransformationHelper.h"
 #include "Point.h"
 #include "PointSet.h"
 #include "Shader.h"
@@ -20,21 +20,21 @@
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1);
-const Vector3D COLORS[] = {
-    Vector3D(1.0f, 0.0f, 0.0f),
-    Vector3D(0.0f, 1.0f, 0.0f),
-    Vector3D(0.0f, 0.0f, 1.0f),
-    Vector3D(0.0f, 1.0f, 1.0f),
-    Vector3D(1.0f, 0.0f, 1.0f),
-    Vector3D(1.0f, 1.0f, 0.0f)
+const Eigen::Vector3f COLORS[] = {
+    Eigen::Vector3f(1.0f, 0.0f, 0.0f),
+    Eigen::Vector3f(0.0f, 1.0f, 0.0f),
+    Eigen::Vector3f(0.0f, 0.0f, 1.0f),
+    Eigen::Vector3f(0.0f, 1.0f, 1.0f),
+    Eigen::Vector3f(1.0f, 0.0f, 1.0f),
+    Eigen::Vector3f(1.0f, 1.0f, 0.0f)
 };
-const int COLOR_SIZE = sizeof(COLORS) / sizeof(Vector3D);
+const int COLOR_SIZE = sizeof(COLORS) / sizeof(Eigen::Vector3f);
 
 int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluster = 0, size = 10000, k = 64;
 float factor = 1.0f;
 double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
 bool press/*, * simplified, * upsampled, * smoothed, * reconstructed*/;
-Matrix4D rotate(1.0f);
+Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
 std::vector<PointSet> origins/*, simplifies, upsamples, smoothes*/;
 //std::vector<Mesh> reconstructs;
 
@@ -54,11 +54,11 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 void cursorPosCallback(GLFWwindow* window, double x, double y) {
     int newX = (int)x, newY = (int)y;
     if (press && lastX != INT_MIN && lastY != INT_MIN && (newX != lastX || newY != lastY)) {
-        Vector3D a = Vector3D((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f).normalize();
-        Vector3D b = Vector3D((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalize();
-        Vector3D axis = a.cross(b);
+        Eigen::Vector3f a = Eigen::Vector3f((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f).normalized();
+        Eigen::Vector3f b = Eigen::Vector3f((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalized();
+        Eigen::Vector3f axis = a.cross(b);
         float angle = a.dot(b);
-        rotate = Matrix4D::rotate(axis, 10.0f * std::acos(angle)) * rotate;
+        rotation = rotate(axis, 10.0f * std::acos(angle)) * rotation;
     }
 
     lastX = newX;
@@ -130,14 +130,14 @@ int main(int argc, char** argv) {
             minZ = std::min(minZ, z);
             maxZ = std::max(maxZ, z);
 
-            points.push_back(Point(Vector3D(x, y, z)));
+            points.push_back(Point(Eigen::Vector3f(x, y, z)));
             clusters.push_back(cluster);
         }
         getline(fin, s);
     }
 
     numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
-    Vector3D center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
+    Eigen::Vector3f center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     std::vector<std::vector<Point>> vertices(numCluster);
     for (int i = 0; i < points.size(); i++) {
         points[i].position = points[i].position - center;
@@ -233,11 +233,11 @@ int main(int argc, char** argv) {
             reconstructed[cluster] = true;
         }*/
 
-        Vector3D lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
-        Matrix4D modelMat, viewMat, projectionMat;
-        modelMat = rotate * Matrix4D(factor);
-        viewMat = Matrix4D::lookAt(cameraPosition, Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
-        projectionMat = Matrix4D::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+        Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
+        Eigen::Matrix4f modelMat, viewMat, projectionMat;
+        modelMat = rotation * scale(factor);
+        viewMat = lookAt(cameraPosition, Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
+        projectionMat = perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
         switch (color) {
         case 0:

@@ -82,10 +82,10 @@ void Shader::use() const {
     glUseProgram(program);
 }
 
-void Shader::setVector3D(const std::string& name, const Vector3D& value) const {
-    glUniform3fv(glGetUniformLocation(program, name.c_str()), 1, &value.values[0]);
+void Shader::setVector3D(const std::string& name, const Eigen::Vector3f& value) const {
+    glUniform3fv(glGetUniformLocation(program, name.c_str()), 1, value.data());
 }
 
-void Shader::setMatrix4D(const std::string& name, const Matrix4D& value) const {
-    glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE, &value.values[0][0]);
+void Shader::setMatrix4D(const std::string& name, const Eigen::Matrix4f& value) const {
+    glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE, value.data());
 }

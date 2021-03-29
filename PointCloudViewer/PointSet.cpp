@@ -2,6 +2,13 @@
 
 PointSet::PointSet(const std::vector<Point>& points) :
 points(points) {
+
+    pointArray = annAllocPts(points.size(), 3);
+    for (int i = 0; i < points.size(); i++)
+        for (int j = 0; j < 3; j++)
+            pointArray[i][j] = points[i].position(j);
+    tree = ANNkd_tree(pointArray, points.size(), 3);
+
     unsigned int vbo;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -19,6 +26,10 @@ points(points) {
 }
 
 PointSet::~PointSet() {}
+
+void PointSet::calculateNormals() {
+
+}
 
 void PointSet::render() const {
     glPointSize(5);

@@ -1,13 +1,14 @@
 #ifndef POINT_H
 #define POINT_H
 
-#include "Vector3D.h"
+#include <Eigen/Dense>
 
 class Point {
 public:
-    Vector3D position, normal;
-    Point(const Vector3D& position);
-    Point(const Vector3D& position, const Vector3D& normal);
+    Eigen::Vector3f position, normal;
+    Point();
+    Point(const Eigen::Vector3f& position);
+    Point(const Eigen::Vector3f& position, const Eigen::Vector3f& normal);
     ~Point();
 };
 

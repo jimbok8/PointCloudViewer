@@ -59,7 +59,7 @@ std::vector<Vertex> PointSet::fromPointNormal(std::vector<PointNormal>& points) 
 
 void PointSet::calculateNormals() {
     std::vector<PointNormal> points = toPointNormal(vertices);
-    CGAL::jet_estimate_normals<CGAL::Sequential_tag>(points, 50, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
+    CGAL::pca_estimate_normals<CGAL::Sequential_tag>(points, 50, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
     CGAL::mst_orient_normals(points, 50, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
     vertices = fromPointNormal(points);
 }
@@ -91,10 +91,13 @@ PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, doubl
 }
 
 PointSet PointSet::smooth(int k) {
-    std::vector<Point> points = toPoint(vertices);
-    CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(points, k);
+    //std::vector<Point> points = toPoint(vertices);
+    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(points, k);
+    std::vector<PointNormal> points = toPointNormal(vertices);
+    CGAL::bilateral_smooth_point_set<CGAL::Sequential_tag>(points, k, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
+    std::vector<Vertex> vertices = fromPointNormal(points);
 
-    std::vector<Vertex> vertices = fromPoint(points);
+    //std::vector<Vertex> vertices = fromPoint(points);
     return PointSet(vertices);
 }
 

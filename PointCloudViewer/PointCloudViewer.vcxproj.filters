@@ -21,30 +21,15 @@
     <ClCompile Include="Shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Vector3D.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Matrix4D.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="Point.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="PointSet.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="KDTree.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Vector3D.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Matrix4D.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Point.h">
@@ -53,7 +38,7 @@
     <ClInclude Include="PointSet.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="KDTree.h">
+    <ClInclude Include="TransformationHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
