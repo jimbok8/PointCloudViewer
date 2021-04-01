@@ -31,9 +31,9 @@ const glm::vec3 COLORS[] = {
 };
 const int COLOR_SIZE = sizeof(COLORS) / sizeof(glm::vec3);
 
-int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluster = 0, size = 10000, k = 64;
+int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluster = 0, size = 100, k = 64;
 float factor = 1.0f;
-double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
+double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 1.0, maximumFacetLength = 1.0;
 bool press, *simplified, *upsampled, *smoothed, *reconstructed;
 glm::mat4 rotate(1.0f);
 std::vector<PointSet> origins, simplifies, upsamples, smoothes;
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     std::vector<Vertex> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/pool.dat");
+    std::ifstream fin("../data/temp.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
-#include <iostream>
+#include <bitset>
 
 #include <Eigen/Dense>
 #include <glad/glad.h>
@@ -12,7 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_opengl3.h>
 
-#include "TransformationHelper.h"
+#include "UtilsHelper.h"
 #include "Point.h"
 #include "PointSet.h"
 #include "Shader.h"
@@ -30,13 +30,10 @@ const Eigen::Vector3f COLORS[] = {
 };
 const int COLOR_SIZE = sizeof(COLORS) / sizeof(Eigen::Vector3f);
 
-int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluster = 0, size = 10000, k = 64;
+int lastX = INT_MIN, lastY = INT_MIN;
 float factor = 1.0f;
-double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
-bool press/*, * simplified, * upsampled, * smoothed, * reconstructed*/;
+bool press;
 Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
-std::vector<PointSet> origins/*, simplifies, upsamples, smoothes*/;
-//std::vector<Mesh> reconstructs;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -112,7 +109,7 @@ int main(int argc, char** argv) {
     std::vector<Point> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/pool.dat");
+    std::ifstream fin("../data/temp.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -136,7 +133,7 @@ int main(int argc, char** argv) {
         getline(fin, s);
     }
 
-    numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
+    int numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
     Eigen::Vector3f center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     std::vector<std::vector<Point>> vertices(numCluster);
     for (int i = 0; i < points.size(); i++) {
@@ -144,20 +141,24 @@ int main(int argc, char** argv) {
         vertices[clusters[i]].push_back(points[i]);
     }
 
+    std::vector<PointSet> origins;
     for (int i = 0; i < numCluster; i++)
         origins.push_back(PointSet(vertices[i]));
-    /*simplified = new bool[numCluster];
-    memset(simplified, false, numCluster * sizeof(bool));
-    simplifies = std::vector<PointSet>(numCluster);
-    upsampled = new bool[numCluster];
-    memset(upsampled, false, numCluster * sizeof(bool));
-    upsamples = std::vector<PointSet>(numCluster);
-    smoothed = new bool[numCluster];
-    memset(smoothed, false, numCluster * sizeof(bool));
-    smoothes = std::vector<PointSet>(numCluster);
-    reconstructed = new bool[numCluster];
-    memset(reconstructed, false, numCluster * sizeof(bool));
-    reconstructs = std::vector<Mesh>(numCluster);*/
+
+    std::vector<bool> simplified(numCluster, false);
+    std::vector<PointSet> simplifies(numCluster);
+
+    std::vector<bool> resampled(numCluster, false);
+    std::vector<PointSet> resamples(numCluster);
+
+    //std::vector<bool> smoothed(numCluster, false);
+    //std::vector<PointSet> smoothes(numCluster);
+
+    //std::vector<bool> reconstructed(numCluster, false);
+    //std::vector<Mesh> reconstructs(numCluster);
+
+    int display = 0, color = 0, cluster = 0, size = 100, k = 64;
+    double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 1.0, maximumFacetLength = 1.0;
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -216,15 +217,15 @@ int main(int argc, char** argv) {
             ImGui::TreePop();
         }
 
-        /*if (ImGui::Button("Simplify")) {
+        if (ImGui::Button("Simplify")) {
             simplifies[cluster] = origins[cluster].simplify(epsilon);
             simplified[cluster] = true;
         }
         if (ImGui::Button("Upsample") && simplified[cluster]) {
-            upsamples[cluster] = simplifies[cluster].upsample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
-            upsampled[cluster] = true;
+            resamples[cluster] = simplifies[cluster].resample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
+            resampled[cluster] = true;
         }
-        if (ImGui::Button("Smooth") && upsampled[cluster]) {
+        /*if (ImGui::Button("Smooth") && upsampled[cluster]) {
             smoothes[cluster] = upsamples[cluster].smooth(k);
             smoothed[cluster] = true;
         }
@@ -252,11 +253,11 @@ int main(int argc, char** argv) {
                     reconstructs[i].render();
                 else if (display == 3 && smoothed[i])
                     smoothes[i].render();
-                else if (display == 2 && upsampled[i])
-                    upsamples[i].render();
+                else*/ if (display == 2 && resampled[i])
+                    resamples[i].render();
                 else if (display == 1 && simplified[i])
                     simplifies[i].render();
-                else*/
+                else
                     origins[i].render();
             break;
 
@@ -273,11 +274,11 @@ int main(int argc, char** argv) {
                     reconstructs[i].render();
                 else if (display == 3 && smoothed[i])
                     smoothes[i].render();
-                else if (display == 2 && upsampled[i])
-                    upsamples[i].render();
+                else*/ if (display == 2 && resampled[i])
+                    resamples[i].render();
                 else if (display == 1 && simplified[i])
                     simplifies[i].render();
-                else*/
+                else
                     origins[i].render();
             }
             break;
@@ -294,11 +295,6 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    //delete[] simplified;
-    //delete[] upsampled;
-    //delete[] smoothed;
-    //delete[] reconstructed;
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

@@ -38,7 +38,7 @@
     <ClInclude Include="PointSet.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="TransformationHelper.h">
+    <ClInclude Include="UtilsHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,7 +1,14 @@
 #ifndef TRANSFORMATION_HELPER
 #define TRANSFORMATION_HELPER
 
+#include <ctime>
+#include <climits>
+#include <random>
+
 #include <Eigen/Dense>
+
+static std::default_random_engine engine(std::time(nullptr));
+static std::uniform_int_distribution<int> uniform(0, INT_MAX);
 
 static Eigen::Matrix4f scale(const float factor) {
     Eigen::Matrix4f ans = Eigen::Matrix4f::Zero();
@@ -72,6 +79,10 @@ static Eigen::Matrix4f perspective(const float fovy, const float aspect, const f
     ans(3, 2) = -1.0f;
 
     return ans;
+}
+
+static int randomUniform(const int range) {
+    return uniform(engine) % range;
 }
 
 #endif
