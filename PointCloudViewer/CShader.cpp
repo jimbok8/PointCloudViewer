@@ -4,14 +4,14 @@ CShader::CShader(const std::string& vertexShaderPath, const std::string& fragmen
     bool vertexShaderSuccess;
     int vertexShader = processShader(vertexShaderPath, GL_VERTEX_SHADER, vertexShaderSuccess);
     if (!vertexShaderSuccess) {
-        this->m_program = 0;
+        m_program = 0;
         return;
     }
 
     bool fragmentShaderSuccess;
     int fragmentShader = processShader(fragmentShaderPath, GL_FRAGMENT_SHADER, fragmentShaderSuccess);
     if (!fragmentShaderSuccess) {
-        this->m_program = 0;
+        m_program = 0;
         return;
     }
 
@@ -20,7 +20,7 @@ CShader::CShader(const std::string& vertexShaderPath, const std::string& fragmen
     if (geometryShaderPath != "") {
         geometryShader = processShader(geometryShaderPath, GL_GEOMETRY_SHADER, geometryShaderSuccess);
         if (!geometryShaderSuccess) {
-            this->m_program = 0;
+            m_program = 0;
             return;
         }
     }
@@ -37,7 +37,7 @@ CShader::CShader(const std::string& vertexShaderPath, const std::string& fragmen
         char info[512];
         glGetProgramInfoLog(program, 512, nullptr, info);
         std::cerr << "Failed to link shader program:" << std::endl << info << std::endl;
-        this->m_program = 0;
+        m_program = 0;
         return;
     }
     glDeleteShader(vertexShader);
@@ -45,7 +45,7 @@ CShader::CShader(const std::string& vertexShaderPath, const std::string& fragmen
     if (geometryShaderPath != "")
         glDeleteShader(geometryShader);
 
-    this->m_program = program;
+    m_program = program;
 }
 
 CShader::~CShader() {}

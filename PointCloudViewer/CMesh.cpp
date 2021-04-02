@@ -1,8 +1,8 @@
 #include "CMesh.h"
 
 CMesh::CMesh(const std::vector<CPoint>& points, const std::vector<unsigned int>& indices) :
-m_points(points),
-m_indices(indices) {
+    m_points(points),
+    m_indices(indices) {
     calculateNormals();
 
     unsigned vbo, ebo;
@@ -12,9 +12,9 @@ m_indices(indices) {
 
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, this->m_points.size() * sizeof(CPoint), this->m_points.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(CPoint), m_points.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->m_indices.size() * sizeof(unsigned int), this->m_indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CPoint), (void*)0);

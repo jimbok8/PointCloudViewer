@@ -24,9 +24,9 @@
 #include "CMesh.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef Kernel::Point_3 CGALPoint;
+typedef Kernel::Point_3 Point;
 typedef Kernel::Vector_3 Vector;
-typedef std::pair<CGALPoint, Vector> PointNormal;
+typedef std::pair<Point, Vector> PointNormal;
 typedef CGAL::Surface_mesh<CPoint> SurfaceMesh;
 typedef SurfaceMesh::Vertex_index VertexIndex;
 typedef SurfaceMesh::Face_index FaceIndex;
@@ -38,8 +38,8 @@ private:
     ANNpointArray m_pointArray;
     ANNkd_tree* m_tree;
     unsigned int m_vao;
-    std::vector<CGALPoint> toPoint(const std::vector<CPoint>& points) const;
-    std::vector<CPoint> fromPoint(const std::vector<CGALPoint>& points) const;
+    std::vector<Point> toPoint(const std::vector<CPoint>& points) const;
+    std::vector<CPoint> fromPoint(const std::vector<Point>& points) const;
     std::vector<PointNormal> toPointNormal(const std::vector<CPoint>& points) const;
     std::vector<CPoint> fromPointNormal(const std::vector<PointNormal>& points) const;
     void calculateNormals(int k = 50);
