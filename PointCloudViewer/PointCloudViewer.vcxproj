@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -147,16 +147,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="Point.cpp" />
-    <ClCompile Include="PointSet.cpp" />
-    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="CMesh.cpp" />
+    <ClCompile Include="CPoint.cpp" />
+    <ClCompile Include="CPointSet.cpp" />
+    <ClCompile Include="CShader.cpp" />
+    <ClCompile Include="ParameterHelper.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="Point.h" />
-    <ClInclude Include="PointSet.h" />
-    <ClInclude Include="Shader.h" />
+    <ClInclude Include="CMesh.h" />
+    <ClInclude Include="CPoint.h" />
+    <ClInclude Include="CPointSet.h" />
+    <ClInclude Include="CShader.h" />
     <ClInclude Include="UtilsHelper.h" />
   </ItemGroup>
   <ItemGroup>

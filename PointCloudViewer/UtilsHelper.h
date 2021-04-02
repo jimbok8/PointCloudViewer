@@ -7,8 +7,8 @@
 
 #include <Eigen/Dense>
 
-static std::default_random_engine engine(std::time(nullptr));
-static std::uniform_int_distribution<int> uniform(0, INT_MAX);
+static std::default_random_engine g_engine(std::time(nullptr));
+static std::uniform_int_distribution<int> g_uniform(0, INT_MAX);
 
 static Eigen::Matrix4f scale(const float factor) {
     Eigen::Matrix4f ans = Eigen::Matrix4f::Zero();
@@ -82,7 +82,7 @@ static Eigen::Matrix4f perspective(const float fovy, const float aspect, const f
 }
 
 static int randomUniform(const int range) {
-    return uniform(engine) % range;
+    return g_uniform(g_engine) % range;
 }
 
 #endif

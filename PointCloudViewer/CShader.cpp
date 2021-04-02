@@ -1,17 +1,17 @@
-#include "Shader.h"
+#include "CShader.h"
 
-Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, const std::string& geometryShaderPath) {
+CShader::CShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, const std::string& geometryShaderPath) {
     bool vertexShaderSuccess;
     int vertexShader = processShader(vertexShaderPath, GL_VERTEX_SHADER, vertexShaderSuccess);
     if (!vertexShaderSuccess) {
-        this->program = 0;
+        this->m_program = 0;
         return;
     }
 
     bool fragmentShaderSuccess;
     int fragmentShader = processShader(fragmentShaderPath, GL_FRAGMENT_SHADER, fragmentShaderSuccess);
     if (!fragmentShaderSuccess) {
-        this->program = 0;
+        this->m_program = 0;
         return;
     }
 
@@ -20,7 +20,7 @@ Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentS
     if (geometryShaderPath != "") {
         geometryShader = processShader(geometryShaderPath, GL_GEOMETRY_SHADER, geometryShaderSuccess);
         if (!geometryShaderSuccess) {
-            this->program = 0;
+            this->m_program = 0;
             return;
         }
     }
@@ -37,7 +37,7 @@ Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentS
         char info[512];
         glGetProgramInfoLog(program, 512, nullptr, info);
         std::cerr << "Failed to link shader program:" << std::endl << info << std::endl;
-        this->program = 0;
+        this->m_program = 0;
         return;
     }
     glDeleteShader(vertexShader);
@@ -45,12 +45,12 @@ Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentS
     if (geometryShaderPath != "")
         glDeleteShader(geometryShader);
 
-    this->program = program;
+    this->m_program = program;
 }
 
-Shader::~Shader() {}
+CShader::~CShader() {}
 
-int Shader::processShader(const std::string& path, const unsigned int type, bool& success) const {
+int CShader::processShader(const std::string& path, const unsigned int type, bool& success) const {
     std::ifstream fileStream(path);
     if (!(success = fileStream.is_open())) {
         std::cerr << "Failed to open shader file " << path << std::endl;
@@ -78,14 +78,14 @@ int Shader::processShader(const std::string& path, const unsigned int type, bool
     return shader;
 }
 
-void Shader::use() const {
-    glUseProgram(program);
+void CShader::use() const {
+    glUseProgram(m_program);
 }
 
-void Shader::setVector3D(const std::string& name, const Eigen::Vector3f& value) const {
-    glUniform3fv(glGetUniformLocation(program, name.c_str()), 1, value.data());
+void CShader::setVector3D(const std::string& name, const Eigen::Vector3f& value) const {
+    glUniform3fv(glGetUniformLocation(m_program, name.c_str()), 1, value.data());
 }
 
-void Shader::setMatrix4D(const std::string& name, const Eigen::Matrix4f& value) const {
-    glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE, value.data());
+void CShader::setMatrix4D(const std::string& name, const Eigen::Matrix4f& value) const {
+    glUniformMatrix4fv(glGetUniformLocation(m_program, name.c_str()), 1, GL_FALSE, value.data());
 }

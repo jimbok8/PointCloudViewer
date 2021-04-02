@@ -13,10 +13,11 @@
 #include <imgui_impl_opengl3.h>
 
 #include "UtilsHelper.h"
-#include "Point.h"
-#include "PointSet.h"
-#include "Mesh.h"
-#include "Shader.h"
+#include "ParameterHelper.h"
+#include "CPoint.h"
+#include "CPointSet.h"
+#include "CMesh.h"
+#include "CShader.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
@@ -31,44 +32,44 @@ const Eigen::Vector3f COLORS[] = {
 };
 const int COLOR_SIZE = sizeof(COLORS) / sizeof(Eigen::Vector3f);
 
-int lastX = INT_MIN, lastY = INT_MIN;
-float factor = 1.0f;
-bool press;
-Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
+static int g_lastX = INT_MIN, g_lastY = INT_MIN;
+static float g_factor = 1.0f;
+static bool g_press = false;
+static Eigen::Matrix4f g_rotation = Eigen::Matrix4f::Identity();
 
-void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        press = true;
-        lastX = lastY = INT_MIN;
+        g_press = true;
+        g_lastX = g_lastY = INT_MIN;
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
-        press = false;
+        g_press = false;
 }
 
-void cursorPosCallback(GLFWwindow* window, double x, double y) {
+static void cursorPosCallback(GLFWwindow* window, double x, double y) {
     int newX = (int)x, newY = (int)y;
-    if (press && lastX != INT_MIN && lastY != INT_MIN && (newX != lastX || newY != lastY)) {
-        Eigen::Vector3f a = Eigen::Vector3f((float)lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)lastY / WINDOW_HEIGHT, 1.0f).normalized();
+    if (g_press && g_lastX != INT_MIN && g_lastY != INT_MIN && (newX != g_lastX || newY != g_lastY)) {
+        Eigen::Vector3f a = Eigen::Vector3f((float)g_lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)g_lastY / WINDOW_HEIGHT, 1.0f).normalized();
         Eigen::Vector3f b = Eigen::Vector3f((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalized();
         Eigen::Vector3f axis = a.cross(b);
         float angle = a.dot(b);
-        rotation = rotate(axis, 10.0f * std::acos(angle)) * rotation;
+        g_rotation = rotate(axis, 10.0f * std::acos(angle)) * g_rotation;
     }
 
-    lastX = newX;
-    lastY = newY;
+    g_lastX = newX;
+    g_lastY = newY;
 }
 
-void scrollCallback(GLFWwindow* window, double x, double y) {
-    factor += 0.01f * (float)y;
-    factor = std::max(factor, 0.01f);
+static void scrollCallback(GLFWwindow* window, double x, double y) {
+    g_factor += 0.01f * (float)y;
+    g_factor = std::max(g_factor, 0.01f);
 }
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 }
@@ -104,10 +105,10 @@ int main(int argc, char** argv) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    Shader normalShader("shader/NormalVertex.glsl", "shader/NormalFragment.glsl");
-    Shader clusterShader("shader/ClusterVertex.glsl", "shader/ClusterFragment.glsl");
+    CShader normalShader("shader/NormalVertex.glsl", "shader/NormalFragment.glsl");
+    CShader clusterShader("shader/ClusterVertex.glsl", "shader/ClusterFragment.glsl");
 
-    std::vector<Point> points;
+    std::vector<CPoint> points;
     std::vector<int> clusters;
     std::string s;
     std::ifstream fin("../data/pool.dat");
@@ -128,7 +129,7 @@ int main(int argc, char** argv) {
             minZ = std::min(minZ, z);
             maxZ = std::max(maxZ, z);
 
-            points.push_back(Point(Eigen::Vector3f(x, y, z)));
+            points.push_back(CPoint(Eigen::Vector3f(x, y, z)));
             clusters.push_back(cluster);
         }
         getline(fin, s);
@@ -136,22 +137,21 @@ int main(int argc, char** argv) {
 
     int numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
     Eigen::Vector3f center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
-    std::vector<std::vector<Point>> vertices(numCluster);
+    std::vector<std::vector<CPoint>> vertices(numCluster);
     for (int i = 0; i < points.size(); i++) {
-        points[i].position = points[i].position - center;
+        points[i].m_position = points[i].m_position - center;
         vertices[clusters[i]].push_back(points[i]);
     }
 
-    std::vector<PointSet*> origins;
+    std::vector<CPointSet*> origins;
     for (int i = 0; i < numCluster; i++)
-        origins.push_back(new PointSet(vertices[i]));
-    std::vector<PointSet*> simplifies(numCluster, nullptr);
-    std::vector<PointSet*> resamples(numCluster, nullptr);
-    std::vector<PointSet*> smoothes(numCluster, nullptr);
-    std::vector<Mesh*> reconstructs(numCluster, nullptr);
+        origins.push_back(new CPointSet(vertices[i]));
+    std::vector<CPointSet*> simplifies(numCluster, nullptr);
+    std::vector<CPointSet*> resamples(numCluster, nullptr);
+    std::vector<CPointSet*> smoothes(numCluster, nullptr);
+    std::vector<CMesh*> reconstructs(numCluster, nullptr);
 
-    int display = 0, color = 0, cluster = 0, size = 10000, k = 64;
-    float epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
+    int display = 0, color = 0, cluster = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
 
         Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         Eigen::Matrix4f modelMat, viewMat, projectionMat;
-        modelMat = rotation * scale(factor);
+        modelMat = g_rotation * scale(g_factor);
         viewMat = lookAt(cameraPosition, Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
         projectionMat = perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 

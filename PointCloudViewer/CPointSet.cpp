@@ -1,83 +1,83 @@
-#include "PointSet.h"
+#include "CPointSet.h"
 
-PointSet::PointSet(const std::vector<Point>& points) :
-    points(points) {
-    pointArray = annAllocPts(points.size(), 3);
+CPointSet::CPointSet(const std::vector<CPoint>& points) :
+m_points(points) {
+    m_pointArray = annAllocPts(points.size(), 3);
     for (int i = 0; i < points.size(); i++)
         for (int j = 0; j < 3; j++)
-            pointArray[i][j] = points[i].position(j);
+            m_pointArray[i][j] = points[i].m_position(j);
 
-    tree = new ANNkd_tree(pointArray, points.size(), 3);
+    m_tree = new ANNkd_tree(m_pointArray, points.size(), 3);
 
     calculateNormals();
 
     unsigned int vbo;
-    glGenVertexArrays(1, &vao);
+    glGenVertexArrays(1, &m_vao);
     glGenBuffers(1, &vbo);
 
-    glBindVertexArray(vao);
+    glBindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, this->points.size() * sizeof(Point), this->points.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, this->m_points.size() * sizeof(CPoint), this->m_points.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CPoint), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)offsetof(Point, normal));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CPoint), (void*)offsetof(CPoint, m_normal));
 
     glBindVertexArray(0);
 }
 
-PointSet::~PointSet() {
-    annDeallocPts(pointArray);
-    delete tree;
+CPointSet::~CPointSet() {
+    annDeallocPts(m_pointArray);
+    delete m_tree;
     annClose();
 }
 
-std::vector<CGALPoint> PointSet::toPoint(const std::vector<Point>& points) const {
+std::vector<CGALPoint> CPointSet::toPoint(const std::vector<CPoint>& points) const {
     std::vector<CGALPoint> ans;
-    for (const Point& point : points)
-        ans.push_back(CGALPoint(point.position(0), point.position(1), point.position(2)));
+    for (const CPoint& point : points)
+        ans.push_back(CGALPoint(point.m_position(0), point.m_position(1), point.m_position(2)));
 
     return ans;
 }
 
-std::vector<Point> PointSet::fromPoint(const std::vector<CGALPoint>& points) const {
-    std::vector<Point> ans;
+std::vector<CPoint> CPointSet::fromPoint(const std::vector<CGALPoint>& points) const {
+    std::vector<CPoint> ans;
     for (const CGALPoint& point : points)
-        ans.push_back(Point(Eigen::Vector3f(point.x(), point.y(), point.z())));
+        ans.push_back(CPoint(Eigen::Vector3f(point.x(), point.y(), point.z())));
 
     return ans;
 }
 
-std::vector<PointNormal> PointSet::toPointNormal(const std::vector<Point>& points) const {
+std::vector<PointNormal> CPointSet::toPointNormal(const std::vector<CPoint>& points) const {
     std::vector<PointNormal> ans;
-    for (const Point& point : points)
-        ans.push_back(std::make_pair(CGALPoint(point.position(0), point.position(1), point.position(2)), Vector(point.normal(0), point.normal(1), point.normal(2))));
+    for (const CPoint& point : points)
+        ans.push_back(std::make_pair(CGALPoint(point.m_position(0), point.m_position(1), point.m_position(2)), Vector(point.m_normal(0), point.m_normal(1), point.m_normal(2))));
 
     return ans;
 }
 
-std::vector<Point> PointSet::fromPointNormal(const std::vector<PointNormal>& points) const {
-    std::vector<Point> ans;
+std::vector<CPoint> CPointSet::fromPointNormal(const std::vector<PointNormal>& points) const {
+    std::vector<CPoint> ans;
     for (const PointNormal& point : points)
-        ans.push_back(Point(Eigen::Vector3f(point.first.x(), point.first.y(), point.first.z()), Eigen::Vector3f(point.second.x(), point.second.y(), point.second.z())));
+        ans.push_back(CPoint(Eigen::Vector3f(point.first.x(), point.first.y(), point.first.z()), Eigen::Vector3f(point.second.x(), point.second.y(), point.second.z())));
 
     return ans;
 }
 
-void PointSet::calculateNormals(int k) {
-    k = std::min(k, (int)points.size());
+void CPointSet::calculateNormals(int k) {
+    k = std::min(k, (int)m_points.size());
 
     ANNidxArray indices = new ANNidx[k];
     ANNdistArray distances = new ANNdist[k];
 
-    std::vector<std::vector<std::pair<int, float>>> graph(points.size());
-    for (int i = 0; i < points.size(); i++) {
-        tree->annkSearch(pointArray[i], k, indices, distances);
+    std::vector<std::vector<std::pair<int, float>>> graph(m_points.size());
+    for (int i = 0; i < m_points.size(); i++) {
+        m_tree->annkSearch(m_pointArray[i], k, indices, distances);
 
         Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
         for (int j = 0; j < k; j++) {
-            avg += points[indices[j]].position;
+            avg += m_points[indices[j]].m_position;
             graph[i].push_back(std::make_pair(indices[j], distances[j]));
             graph[indices[j]].push_back(std::make_pair(i, distances[j]));
         }
@@ -85,21 +85,21 @@ void PointSet::calculateNormals(int k) {
 
         Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
         for (int j = 0; j < k; j++) {
-            Eigen::Vector3f x = points[indices[j]].position - avg;
+            Eigen::Vector3f x = m_points[indices[j]].m_position - avg;
             cov += x * x.transpose();
         }
         cov /= k;
 
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
         solver.compute(cov);
-        points[i].normal = solver.eigenvectors().col(0);
+        m_points[i].m_normal = solver.eigenvectors().col(0);
     }
 
-    std::vector<float> dist(points.size(), FLT_MAX);
-    std::vector<bool> flag(points.size(), false);
+    std::vector<float> dist(m_points.size(), FLT_MAX);
+    std::vector<bool> flag(m_points.size(), false);
     std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> heap;
 
-    int seed = randomUniform(points.size());
+    int seed = randomUniform(m_points.size());
     dist[seed] = 0.0f;
     heap.push(std::make_pair(dist[seed], seed));
     while (!heap.empty()) {
@@ -113,8 +113,8 @@ void PointSet::calculateNormals(int k) {
             if (pair.second < dist[next]) {
                 dist[next] = pair.second;
                 heap.push(std::make_pair(dist[next], next));
-                if (points[next].normal.dot(points[now].normal) < 0.0f)
-                    points[next].normal = -points[next].normal;
+                if (m_points[next].m_normal.dot(m_points[now].m_normal) < 0.0f)
+                    m_points[next].m_normal = -m_points[next].m_normal;
             }
         }
     }
@@ -123,16 +123,16 @@ void PointSet::calculateNormals(int k) {
     delete[] distances;
 }
 
-float PointSet::averageSpacing(int k) const {
-    k = std::min(k, (int)points.size());
+float CPointSet::averageSpacing(int k) const {
+    k = std::min(k, (int)m_points.size());
 
     ANNidxArray indices = new ANNidx[k];
     ANNdistArray distances = new ANNdist[k];
     float ans = 0.0f;
 
-    for (int i = 0; i < points.size(); i++) {
-        ANNpoint point = pointArray[i];
-        tree->annkSearch(pointArray[i], k, indices, distances);
+    for (int i = 0; i < m_points.size(); i++) {
+        ANNpoint point = m_pointArray[i];
+        m_tree->annkSearch(m_pointArray[i], k, indices, distances);
         float sum = 0.0f;
         for (int j = 0; j < k; j++)
             sum += distances[j];
@@ -142,14 +142,14 @@ float PointSet::averageSpacing(int k) const {
     delete[] indices;
     delete[] distances;
 
-    return ans / (float)points.size();
+    return ans / (float)m_points.size();
 }
 
-std::vector<std::vector<int>> PointSet::calculateNeighbors(const std::vector<Point>& points, const float radius) const {
+std::vector<std::vector<int>> CPointSet::calculateNeighbors(const std::vector<CPoint>& points, const float radius) const {
     ANNpointArray pointArray = annAllocPts(points.size(), 3);
     for (int i = 0; i < points.size(); i++)
         for (int j = 0; j < 3; j++)
-            pointArray[i][j] = points[i].position(j);
+            pointArray[i][j] = points[i].m_position(j);
     ANNkd_tree* tree = new ANNkd_tree(pointArray, points.size(), 3);
 
     float radius2 = radius * radius;
@@ -176,27 +176,27 @@ std::vector<std::vector<int>> PointSet::calculateNeighbors(const std::vector<Poi
     return ans;
 }
 
-void PointSet::selectBasePoint(const std::vector<Point>& points, const int index, const std::vector<int>& neighbors, const float edgeSensitivity, float& density2, int& baseIndex) const {
+void CPointSet::selectBasePoint(const std::vector<CPoint>& points, const int index, const std::vector<int>& neighbors, const float edgeSensitivity, float& density2, int& baseIndex) const {
     if (neighbors.empty()) {
         density2 = 0.0f;
         baseIndex = index;
         return;
     }
 
-    Point v = points[index];
+    CPoint v = points[index];
     float bestDist2 = -FLT_MAX;
     for (int i = 0; i < neighbors.size(); i++) {
-        Point t = points[neighbors[i]];
-        Eigen::Vector3f midPoint = (v.position + t.position) * 0.5f;
-        float dotProduce = std::pow(2.0f - v.normal.dot(t.normal), edgeSensitivity);
-        Eigen::Vector3f diffT = midPoint - t.position;
-        float projectionT = diffT.dot(t.normal);
+        CPoint t = points[neighbors[i]];
+        Eigen::Vector3f midPoint = (v.m_position + t.m_position) * 0.5f;
+        float dotProduce = std::pow(2.0f - v.m_normal.dot(t.m_normal), edgeSensitivity);
+        Eigen::Vector3f diffT = midPoint - t.m_position;
+        float projectionT = diffT.dot(t.m_normal);
         float minDist2 = diffT.squaredNorm() - projectionT * projectionT;
 
         for (int j = 0; j < neighbors.size(); j++) {
-            Point s = points[neighbors[j]];
-            Eigen::Vector3f diffS = midPoint - s.position;
-            float projectionS = diffS.dot(s.normal);
+            CPoint s = points[neighbors[j]];
+            Eigen::Vector3f diffS = midPoint - s.m_position;
+            float projectionS = diffS.dot(s.m_normal);
             float dist2 = diffS.squaredNorm() - projectionS * projectionS;
             if (dist2 < minDist2)
                 minDist2 = dist2;
@@ -213,10 +213,10 @@ void PointSet::selectBasePoint(const std::vector<Point>& points, const int index
     density2 = bestDist2;
 }
 
-void PointSet::updateNewPoint(std::vector<Point>& points, std::vector<std::vector<int>>& neighbors, const int newIndex, const int fatherIndex, const int motherIndex, const float radius, const float sharpnessAngle) const {
-    Point v = points[newIndex];
-    Point father = points[fatherIndex];
-    Point mother = points[motherIndex];
+void CPointSet::updateNewPoint(std::vector<CPoint>& points, std::vector<std::vector<int>>& neighbors, const int newIndex, const int fatherIndex, const int motherIndex, const float radius, const float sharpnessAngle) const {
+    CPoint v = points[newIndex];
+    CPoint father = points[fatherIndex];
+    CPoint mother = points[motherIndex];
     
     std::set<int> neighborIndices;
     for (const int neighbor : neighbors[fatherIndex])
@@ -229,28 +229,28 @@ void PointSet::updateNewPoint(std::vector<Point>& points, std::vector<std::vecto
     float radius2 = radius * radius;
     neighbors.push_back(std::vector<int>());
     for (const int index : neighborIndices)
-        if ((points[index].position - v.position).squaredNorm() < radius2)
+        if ((points[index].m_position - v.m_position).squaredNorm() < radius2)
             neighbors[newIndex].push_back(index);
 
     std::vector<Eigen::Vector3f> normalCandidates;
-    normalCandidates.push_back(father.normal);
-    normalCandidates.push_back(mother.normal);
+    normalCandidates.push_back(father.m_normal);
+    normalCandidates.push_back(mother.m_normal);
     std::vector<float> projectDistSum(2, 0.0f);
     std::vector<Eigen::Vector3f> normalSum(2, Eigen::Vector3f::Zero());
     std::vector<float> weightSum(2, 0.0f);
     float radius16 = -4.0f / radius2;
     for (int i = 0; i < neighbors[newIndex].size(); i++) {
-        Point t = points[neighbors[newIndex][i]];
-        float dist2 = (v.position - t.position).squaredNorm();
+        CPoint t = points[neighbors[newIndex][i]];
+        float dist2 = (v.m_position - t.m_position).squaredNorm();
         float theta = std::exp(dist2 * radius16);
 
         for (int j = 0; j < 2; j++) {
-            float psi = std::exp(-std::pow(1.0f - normalCandidates[j].dot(t.normal), 2) / sharpnessAngle);
-            float projectDiff = (t.position - v.position).dot(t.normal);
+            float psi = std::exp(-std::pow(1.0f - normalCandidates[j].dot(t.m_normal), 2) / sharpnessAngle);
+            float projectDiff = (t.m_position - v.m_position).dot(t.m_normal);
             float weight = psi * theta;
 
             projectDistSum[j] += projectDiff * weight;
-            normalSum[j] += t.normal * weight;
+            normalSum[j] += t.m_normal * weight;
             weightSum[j] += weight;
         }
     }
@@ -266,15 +266,15 @@ void PointSet::updateNewPoint(std::vector<Point>& points, std::vector<std::vecto
     }
 
     Eigen::Vector3f updateNormal = normalSum[best] / weightSum[best];
-    points[newIndex].normal = updateNormal / updateNormal.norm();
+    points[newIndex].m_normal = updateNormal / updateNormal.norm();
     float projectDist = projectDistSum[best] / weightSum[best];
-    points[newIndex].position += points[newIndex].normal * projectDist;
+    points[newIndex].m_position += points[newIndex].m_normal * projectDist;
 
     v = points[newIndex];
     neighbors[newIndex].clear();
     for (const int index : neighborIndices) {
-        Point t = points[index];
-        float dist2 = (v.position - t.position).squaredNorm();
+        CPoint t = points[index];
+        float dist2 = (v.m_position - t.m_position).squaredNorm();
         if (dist2 < radius2) {
             neighbors[newIndex].push_back(index);
             neighbors[index].push_back(newIndex);
@@ -282,32 +282,32 @@ void PointSet::updateNewPoint(std::vector<Point>& points, std::vector<std::vecto
     }
 }
 
-PointSet* PointSet::simplify(const float epsilon) const {
+CPointSet* CPointSet::simplify(const float epsilon) const {
     float minX, minY, minZ;
     minX = minY = minZ = FLT_MAX;
 
-    for (const Point& point : points) {
-        minX = std::min(minX, point.position(0));
-        minY = std::min(minY, point.position(1));
-        minZ = std::min(minZ, point.position(2));
+    for (const CPoint& point : m_points) {
+        minX = std::min(minX, point.m_position(0));
+        minY = std::min(minY, point.m_position(1));
+        minZ = std::min(minZ, point.m_position(2));
     }
 
     std::map<std::tuple<int, int, int>, std::vector<int>> map;
-    for (int i = 0; i < points.size(); i++) {
-        int x = (int)((points[i].position(0) - minX) / epsilon);
-        int y = (int)((points[i].position(1) - minY) / epsilon);
-        int z = (int)((points[i].position(2) - minZ) / epsilon);
+    for (int i = 0; i < m_points.size(); i++) {
+        int x = (int)((m_points[i].m_position(0) - minX) / epsilon);
+        int y = (int)((m_points[i].m_position(1) - minY) / epsilon);
+        int z = (int)((m_points[i].m_position(2) - minZ) / epsilon);
         map[std::make_tuple(x, y, z)].push_back(i);
     }
 
-    std::vector<Point> points;
+    std::vector<CPoint> points;
     for (const std::pair<std::tuple<int, int, int>, std::vector<int>>& pair : map)
-        points.push_back(this->points[pair.second[randomUniform(pair.second.size())]]);
+        points.push_back(this->m_points[pair.second[randomUniform(pair.second.size())]]);
 
-    return new PointSet(points);
+    return new CPointSet(points);
 }
 
-PointSet* PointSet::resample(float sharpnessAngle, float edgeSensitivity, float neighborRadius, int size) const {
+CPointSet* CPointSet::resample(float sharpnessAngle, float edgeSensitivity, float neighborRadius, int size) const {
     edgeSensitivity *= 10.0f;
     float spacing = averageSpacing();
     if (neighborRadius < spacing)
@@ -315,7 +315,7 @@ PointSet* PointSet::resample(float sharpnessAngle, float edgeSensitivity, float 
     float cosSigma = std::cos(sharpnessAngle / 180.0f * std::acos(-1.0f));
     sharpnessAngle = std::pow(std::max(1e-8f, 1.0f - cosSigma), 2.0f);
 
-    std::vector<Point> points(this->points);
+    std::vector<CPoint> points(this->m_points);
     std::vector<std::vector<int>> neighbors = calculateNeighbors(points, neighborRadius);
 
     float currentRadius = neighborRadius;
@@ -376,7 +376,7 @@ PointSet* PointSet::resample(float sharpnessAngle, float edgeSensitivity, float 
                 sumDensity += density2;
                 countDensity++;
 
-                points.push_back(Point((points[i].position + points[baseIndex].position) * 0.5f));
+                points.push_back(CPoint((points[i].m_position + points[baseIndex].m_position) * 0.5f));
                 isPassThreshold.push_back(false);
                 updateNewPoint(points, neighbors, points.size() - 1, i, baseIndex, currentRadius, sharpnessAngle);
 
@@ -392,28 +392,28 @@ PointSet* PointSet::resample(float sharpnessAngle, float edgeSensitivity, float 
             break;
     }
 
-    return new PointSet(points);
+    return new CPointSet(points);
 }
 
-PointSet* PointSet::smooth(const int k) const {
-    //std::vector<Point> points = toPoint(vertices);
-    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(points, k);
-    std::vector<PointNormal> points = toPointNormal(this->points);
+CPointSet* CPointSet::smooth(const int k) const {
+    //std::vector<CPoint> m_points = toPoint(vertices);
+    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(m_points, k);
+    std::vector<PointNormal> points = toPointNormal(this->m_points);
     CGAL::bilateral_smooth_point_set<CGAL::Sequential_tag>(points, k, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
-    std::vector<Point> newPoints = fromPointNormal(points);
+    std::vector<CPoint> newPoints = fromPointNormal(points);
 
-    //std::vector<Vertex> vertices = fromPoint(points);
-    return new PointSet(newPoints);
+    //std::vector<Vertex> vertices = fromPoint(m_points);
+    return new CPointSet(newPoints);
 }
 
-Mesh* PointSet::reconstruct(const double maximumFacetLength) const {
+CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
     /*std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
     if (type == 0) {
-        std::vector<Point> points = toPoint(this->vertices);
+        std::vector<CPoint> m_points = toPoint(this->vertices);
         std::vector<std::array<std::size_t, 3>> facets;
-        CGAL::advancing_front_surface_reconstruction(points.begin(), points.end(), std::back_inserter(facets));
+        CGAL::advancing_front_surface_reconstruction(m_points.begin(), m_points.end(), std::back_inserter(facets));
 
         vertices = this->vertices;
         for (std::array<std::size_t, 3>& facet : facets)
@@ -421,8 +421,8 @@ Mesh* PointSet::reconstruct(const double maximumFacetLength) const {
                 indices.push_back(index);
     }
     else if (type == 1) {
-        std::vector<Point> points = toPoint(this->vertices);
-        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
+        std::vector<CPoint> m_points = toPoint(this->vertices);
+        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(m_points.begin(), m_points.end());
         reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
         reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(1.0));
 
@@ -432,19 +432,19 @@ Mesh* PointSet::reconstruct(const double maximumFacetLength) const {
                 indices.push_back(index);
     }
     else if (type == 2) {
-        std::vector<PointNormal> points = toPointNormal(this->vertices);
+        std::vector<PointNormal> m_points = toPointNormal(this->vertices);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         for (Vertex& vertex : this->vertices)
-            cloud->push_back(pcl::PointXYZ(vertex.position.x, vertex.position.y, vertex.position.z));
+            cloud->push_back(pcl::PointXYZ(vertex.m_position.x, vertex.m_position.y, vertex.m_position.z));
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
         tree->setInputCloud(cloud);
 
         SurfaceMesh mesh;
-        CGAL::poisson_surface_reconstruction_delaunay(points.begin(), points.end(), CGAL::First_of_pair_property_map<PointNormal>(), CGAL::Second_of_pair_property_map<PointNormal>(), mesh, 1.0);
+        CGAL::poisson_surface_reconstruction_delaunay(m_points.begin(), m_points.end(), CGAL::First_of_pair_property_map<PointNormal>(), CGAL::Second_of_pair_property_map<PointNormal>(), mesh, 1.0);
 
         std::map<VertexIndex, unsigned int> mapping;
         for (VertexIndex vertex : mesh.vertices()) {
-            Point point = mesh.point(vertex);
+            CPoint point = mesh.point(vertex);
             std::vector<int> indices;
             std::vector<float> distances;
             tree->nearestKSearch(pcl::PointXYZ(point.x(), point.y(), point.z()), 1, indices, distances);
@@ -474,11 +474,11 @@ Mesh* PointSet::reconstruct(const double maximumFacetLength) const {
         }
     }
     else {
-        pcl::PointCloud<pcl::PointNormal>::Ptr points(new pcl::PointCloud<pcl::PointNormal>);
+        pcl::PointCloud<pcl::PointNormal>::Ptr m_points(new pcl::PointCloud<pcl::PointNormal>);
         for (Vertex& vertex : this->vertices)
-            points->push_back(pcl::PointNormal(vertex.position.x, vertex.position.y, vertex.position.z, vertex.normal.x, vertex.normal.y, vertex.normal.z));
+            m_points->push_back(pcl::PointNormal(vertex.m_position.x, vertex.m_position.y, vertex.m_position.z, vertex.m_normal.x, vertex.m_normal.y, vertex.m_normal.z));
         pcl::search::KdTree<pcl::PointNormal>::Ptr tree(new pcl::search::KdTree<pcl::PointNormal>);
-        tree->setInputCloud(points);
+        tree->setInputCloud(m_points);
         pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh);
 
         if (type == 3) {
@@ -490,34 +490,34 @@ Mesh* PointSet::reconstruct(const double maximumFacetLength) const {
             gpt.setMinimumAngle(M_PI / 18);
             gpt.setMaximumAngle(M_PI * 2 / 3);
             gpt.setNormalConsistency(false);
-            gpt.setInputCloud(points);
+            gpt.setInputCloud(m_points);
             gpt.setSearchMethod(tree);
             gpt.reconstruct(*mesh);
         }
         else if (type == 4) {
             pcl::MarchingCubesHoppe<pcl::PointNormal> mc;
             mc.setGridResolution(64, 64, 64);
-            mc.setInputCloud(points);
+            mc.setInputCloud(m_points);
             mc.setSearchMethod(tree);
             mc.reconstruct(*mesh);
         }
         else if (type == 5) {
             pcl::MarchingCubesRBF<pcl::PointNormal> mc;
             mc.setGridResolution(64, 64, 64);
-            mc.setInputCloud(points);
+            mc.setInputCloud(m_points);
             mc.setSearchMethod(tree);
             mc.reconstruct(*mesh);
         }
 
-        fromPCLPointCloud2(mesh->cloud, *points);
-        for (pcl::PointNormal& point : *points)
+        fromPCLPointCloud2(mesh->cloud, *m_points);
+        for (pcl::PointNormal& point : *m_points)
             vertices.push_back(Vertex(point.x, point.y, point.z));
         for (pcl::Vertices& polygon : mesh->polygons)
             for (unsigned int vertex : polygon.vertices)
                 indices.push_back(vertex);
     }*/
 
-    std::vector<CGALPoint> points = toPoint(this->points);
+    std::vector<CGALPoint> points = toPoint(this->m_points);
     CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
     reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
     reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumFacetLength));
@@ -528,12 +528,12 @@ Mesh* PointSet::reconstruct(const double maximumFacetLength) const {
             indices.push_back(index);
     std::cout << indices.size() / 3 << " facet(s) generated by reconstruction." << std::endl;
 
-    return new Mesh(this->points, indices);
+    return new CMesh(this->m_points, indices);
 }
 
-void PointSet::render() const {
+void CPointSet::render() const {
     glPointSize(5);
-    glBindVertexArray(vao);
-    glDrawArrays(GL_POINTS, 0, points.size());
+    glBindVertexArray(m_vao);
+    glDrawArrays(GL_POINTS, 0, m_points.size());
     glBindVertexArray(0);
 }

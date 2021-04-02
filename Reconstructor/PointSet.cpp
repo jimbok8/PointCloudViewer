@@ -91,13 +91,13 @@ PointSet PointSet::upsample(double sharpnessAngle, double edgeSensitivity, doubl
 }
 
 PointSet PointSet::smooth(int k) {
-    //std::vector<Point> points = toPoint(vertices);
-    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(points, k);
+    //std::vector<Point> m_points = toPoint(vertices);
+    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(m_points, k);
     std::vector<PointNormal> points = toPointNormal(vertices);
     CGAL::bilateral_smooth_point_set<CGAL::Sequential_tag>(points, k, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
     std::vector<Vertex> vertices = fromPointNormal(points);
 
-    //std::vector<Vertex> vertices = fromPoint(points);
+    //std::vector<Vertex> vertices = fromPoint(m_points);
     return PointSet(vertices);
 }
 
@@ -106,9 +106,9 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
     std::vector<unsigned int> indices;
 
     if (type == 0) {
-        std::vector<Point> points = toPoint(this->vertices);
+        std::vector<Point> m_points = toPoint(this->vertices);
         std::vector<std::array<std::size_t, 3>> facets;
-        CGAL::advancing_front_surface_reconstruction(points.begin(), points.end(), std::back_inserter(facets));
+        CGAL::advancing_front_surface_reconstruction(m_points.begin(), m_points.end(), std::back_inserter(facets));
 
         vertices = this->vertices;
         for (std::array<std::size_t, 3>& facet : facets)
@@ -116,8 +116,8 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
                 indices.push_back(index);
     }
     else if (type == 1) {
-        std::vector<Point> points = toPoint(this->vertices);
-        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
+        std::vector<Point> m_points = toPoint(this->vertices);
+        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(m_points.begin(), m_points.end());
         reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
         reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(1.0));
 
@@ -127,7 +127,7 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
                 indices.push_back(index);
     }
     else if (type == 2) {
-        std::vector<PointNormal> points = toPointNormal(this->vertices);
+        std::vector<PointNormal> m_points = toPointNormal(this->vertices);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         for (Vertex& vertex : this->vertices)
             cloud->push_back(pcl::PointXYZ(vertex.position.x, vertex.position.y, vertex.position.z));
@@ -135,7 +135,7 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
         tree->setInputCloud(cloud);
 
         SurfaceMesh mesh;
-        CGAL::poisson_surface_reconstruction_delaunay(points.begin(), points.end(), CGAL::First_of_pair_property_map<PointNormal>(), CGAL::Second_of_pair_property_map<PointNormal>(), mesh, 1.0);
+        CGAL::poisson_surface_reconstruction_delaunay(m_points.begin(), m_points.end(), CGAL::First_of_pair_property_map<PointNormal>(), CGAL::Second_of_pair_property_map<PointNormal>(), mesh, 1.0);
 
         std::map<VertexIndex, unsigned int> mapping;
         for (VertexIndex vertex : mesh.vertices()) {
@@ -169,11 +169,11 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
         }
     }
     else {
-        pcl::PointCloud<pcl::PointNormal>::Ptr points(new pcl::PointCloud<pcl::PointNormal>);
+        pcl::PointCloud<pcl::PointNormal>::Ptr m_points(new pcl::PointCloud<pcl::PointNormal>);
         for (Vertex& vertex : this->vertices)
-            points->push_back(pcl::PointNormal(vertex.position.x, vertex.position.y, vertex.position.z, vertex.normal.x, vertex.normal.y, vertex.normal.z));
+            m_points->push_back(pcl::PointNormal(vertex.position.x, vertex.position.y, vertex.position.z, vertex.normal.x, vertex.normal.y, vertex.normal.z));
         pcl::search::KdTree<pcl::PointNormal>::Ptr tree(new pcl::search::KdTree<pcl::PointNormal>);
-        tree->setInputCloud(points);
+        tree->setInputCloud(m_points);
         pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh);
 
         if (type == 3) {
@@ -185,27 +185,27 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
             gpt.setMinimumAngle(M_PI / 18);
             gpt.setMaximumAngle(M_PI * 2 / 3);
             gpt.setNormalConsistency(false);
-            gpt.setInputCloud(points);
+            gpt.setInputCloud(m_points);
             gpt.setSearchMethod(tree);
             gpt.reconstruct(*mesh);
         }
         else if (type == 4) {
             pcl::MarchingCubesHoppe<pcl::PointNormal> mc;
             mc.setGridResolution(64, 64, 64);
-            mc.setInputCloud(points);
+            mc.setInputCloud(m_points);
             mc.setSearchMethod(tree);
             mc.reconstruct(*mesh);
         }
         else if (type == 5) {
             pcl::MarchingCubesRBF<pcl::PointNormal> mc;
             mc.setGridResolution(64, 64, 64);
-            mc.setInputCloud(points);
+            mc.setInputCloud(m_points);
             mc.setSearchMethod(tree);
             mc.reconstruct(*mesh);
         }
 
-        fromPCLPointCloud2(mesh->cloud, *points);
-        for (pcl::PointNormal& point : *points)
+        fromPCLPointCloud2(mesh->cloud, *m_points);
+        for (pcl::PointNormal& point : *m_points)
             vertices.push_back(Vertex(point.x, point.y, point.z));
         for (pcl::Vertices& polygon : mesh->polygons)
             for (unsigned int vertex : polygon.vertices)
