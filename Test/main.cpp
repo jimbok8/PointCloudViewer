@@ -12,7 +12,7 @@
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
-const float EPSILON = 1e-10f;
+const float EPSILON = 1e-5f;
 
 static std::vector<CPoint> points;
 static std::vector<Vertex> vertices;
@@ -41,16 +41,16 @@ static bool compare(std::vector<CPoint>& points, std::vector<Vertex>& vertices) 
     std::sort(vertices.begin(), vertices.end(), compareVertex);
     for (int i = 0; i < points.size(); i++) {
         Eigen::Vector3f position(vertices[i].position.x, vertices[i].position.y, vertices[i].position.z);
-
-        float sumPosition = 0.0f, sumNormal = 0.0f;
-        for (int j = 0; j < 3; j++) {
-            float diffPosition = points[i].m_position[j] - vertices[i].position[j];
-            sumPosition += diffPosition * diffPosition;
-            float diffNormal = points[i].m_normal[j] - vertices[i].normal[j];
-            sumNormal += diffNormal * diffNormal;
-        }
-        if (sumPosition > EPSILON || sumNormal > EPSILON)
+        if ((points[i].m_position - position).squaredNorm() > EPSILON)
             return false;
+        
+        Eigen::Vector3f normal(vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z);
+        if ((points[i].m_normal - normal).squaredNorm() > EPSILON && (points[i].m_normal + normal).squaredNorm() > EPSILON) {
+            std::cout << i << std::endl;
+            std::cout << points[i].m_normal << std::endl << normal << std::endl;
+            std::cout << (points[i].m_normal - normal).squaredNorm() << ' ' << (points[i].m_normal + normal).squaredNorm() << std::endl;
+            return false;
+        }
     }
 
     return true;
@@ -101,8 +101,6 @@ int main() {
         getline(fin, s);
     }
 
-    if (!compare(points, vertices))
-        std::cout << "FUCK" << std::endl;
     if (!TestCalculateNormals())
         std::cout << "TestCalculateNormals failed." << std::endl;
     else if (!TestSimplify())
