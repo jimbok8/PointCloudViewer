@@ -64,6 +64,10 @@ void PointSet::calculateNormals() {
     vertices = fromPointNormal(points);
 }
 
+std::vector<Vertex> PointSet::getVertices() const {
+    return vertices;
+}
+
 PointSet PointSet::simplify(double epsilon) {
     std::vector<Point> points = toPoint(vertices);
     int t = points.size();

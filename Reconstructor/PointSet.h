@@ -57,6 +57,7 @@ public:
     PointSet();
     PointSet(std::vector<Vertex>& vertices);
     ~PointSet();
+    std::vector<Vertex> getVertices() const;
     PointSet simplify(double epsilon);
     PointSet upsample(double sharpnessAngle, double edgeSensitivity, double neighborRadius, int size);
     PointSet smooth(int k);

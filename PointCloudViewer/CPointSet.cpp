@@ -33,37 +33,37 @@ CPointSet::~CPointSet() {
     annClose();
 }
 
-std::vector<Point> CPointSet::toPoint(const std::vector<CPoint>& points) const {
-    std::vector<Point> ans;
-    for (const CPoint& point : points)
-        ans.push_back(Point(point.m_position(0), point.m_position(1), point.m_position(2)));
-
-    return ans;
-}
-
-std::vector<CPoint> CPointSet::fromPoint(const std::vector<Point>& points) const {
-    std::vector<CPoint> ans;
-    for (const Point& point : points)
-        ans.push_back(CPoint(Eigen::Vector3f(point.x(), point.y(), point.z())));
-
-    return ans;
-}
-
-std::vector<PointNormal> CPointSet::toPointNormal(const std::vector<CPoint>& points) const {
-    std::vector<PointNormal> ans;
-    for (const CPoint& point : points)
-        ans.push_back(std::make_pair(Point(point.m_position(0), point.m_position(1), point.m_position(2)), Vector(point.m_normal(0), point.m_normal(1), point.m_normal(2))));
-
-    return ans;
-}
-
-std::vector<CPoint> CPointSet::fromPointNormal(const std::vector<PointNormal>& points) const {
-    std::vector<CPoint> ans;
-    for (const PointNormal& point : points)
-        ans.push_back(CPoint(Eigen::Vector3f(point.first.x(), point.first.y(), point.first.z()), Eigen::Vector3f(point.second.x(), point.second.y(), point.second.z())));
-
-    return ans;
-}
+//std::vector<Point> CPointSet::toPoint(const std::vector<CPoint>& points) const {
+//    std::vector<Point> ans;
+//    for (const CPoint& point : points)
+//        ans.push_back(Point(point.m_position(0), point.m_position(1), point.m_position(2)));
+//
+//    return ans;
+//}
+//
+//std::vector<CPoint> CPointSet::fromPoint(const std::vector<Point>& points) const {
+//    std::vector<CPoint> ans;
+//    for (const Point& point : points)
+//        ans.push_back(CPoint(Eigen::Vector3f(point.x(), point.y(), point.z())));
+//
+//    return ans;
+//}
+//
+//std::vector<PointNormal> CPointSet::toPointNormal(const std::vector<CPoint>& points) const {
+//    std::vector<PointNormal> ans;
+//    for (const CPoint& point : points)
+//        ans.push_back(std::make_pair(Point(point.m_position(0), point.m_position(1), point.m_position(2)), Vector(point.m_normal(0), point.m_normal(1), point.m_normal(2))));
+//
+//    return ans;
+//}
+//
+//std::vector<CPoint> CPointSet::fromPointNormal(const std::vector<PointNormal>& points) const {
+//    std::vector<CPoint> ans;
+//    for (const PointNormal& point : points)
+//        ans.push_back(CPoint(Eigen::Vector3f(point.first.x(), point.first.y(), point.first.z()), Eigen::Vector3f(point.second.x(), point.second.y(), point.second.z())));
+//
+//    return ans;
+//}
 
 void CPointSet::calculateNormals(int k) {
     k = std::min(k, (int)m_points.size());
@@ -282,6 +282,10 @@ void CPointSet::updateNewPoint(std::vector<CPoint>& points, std::vector<std::vec
     }
 }
 
+std::vector<CPoint> CPointSet::getPoints() const {
+    return m_points;
+}
+
 CPointSet* CPointSet::simplify(const float epsilon) const {
     float minX, minY, minZ;
     minX = minY = minZ = FLT_MAX;
@@ -395,141 +399,141 @@ CPointSet* CPointSet::resample(float sharpnessAngle, float edgeSensitivity, floa
     return new CPointSet(points);
 }
 
-CPointSet* CPointSet::smooth(const int k) const {
-    //std::vector<CPoint> m_points = toPoint(vertices);
-    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(m_points, k);
-    std::vector<PointNormal> points = toPointNormal(m_points);
-    CGAL::bilateral_smooth_point_set<CGAL::Sequential_tag>(points, k, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
-    std::vector<CPoint> newPoints = fromPointNormal(points);
+//CPointSet* CPointSet::smooth(const int k) const {
+//    //std::vector<CPoint> m_points = toPoint(vertices);
+//    //CGAL::jet_smooth_point_set<CGAL::Sequential_tag>(m_points, k);
+//    std::vector<PointNormal> points = toPointNormal(m_points);
+//    CGAL::bilateral_smooth_point_set<CGAL::Sequential_tag>(points, k, CGAL::parameters::point_map(CGAL::First_of_pair_property_map<PointNormal>()).normal_map(CGAL::Second_of_pair_property_map<PointNormal>()));
+//    std::vector<CPoint> newPoints = fromPointNormal(points);
+//
+//    std::vector<Vertex> vertices = fromPoint(m_points);
+//    return new CPointSet(newPoints);
+//}
 
-    //std::vector<Vertex> vertices = fromPoint(m_points);
-    return new CPointSet(newPoints);
-}
-
-CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
-    /*std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
-
-    if (type == 0) {
-        std::vector<CPoint> m_points = toPoint(this->vertices);
-        std::vector<std::array<std::size_t, 3>> facets;
-        CGAL::advancing_front_surface_reconstruction(m_points.begin(), m_points.end(), std::back_inserter(facets));
-
-        vertices = this->vertices;
-        for (std::array<std::size_t, 3>& facet : facets)
-            for (size_t index : facet)
-                indices.push_back(index);
-    }
-    else if (type == 1) {
-        std::vector<CPoint> m_points = toPoint(this->vertices);
-        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(m_points.begin(), m_points.end());
-        reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
-        reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(1.0));
-
-        vertices = this->vertices;
-        for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
-            for (unsigned int index : *iter)
-                indices.push_back(index);
-    }
-    else if (type == 2) {
-        std::vector<PointNormal> m_points = toPointNormal(this->vertices);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        for (Vertex& vertex : this->vertices)
-            cloud->push_back(pcl::PointXYZ(vertex.m_position.x, vertex.m_position.y, vertex.m_position.z));
-        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
-        tree->setInputCloud(cloud);
-
-        SurfaceMesh mesh;
-        CGAL::poisson_surface_reconstruction_delaunay(m_points.begin(), m_points.end(), CGAL::First_of_pair_property_map<PointNormal>(), CGAL::Second_of_pair_property_map<PointNormal>(), mesh, 1.0);
-
-        std::map<VertexIndex, unsigned int> mapping;
-        for (VertexIndex vertex : mesh.vertices()) {
-            CPoint point = mesh.point(vertex);
-            std::vector<int> indices;
-            std::vector<float> distances;
-            tree->nearestKSearch(pcl::PointXYZ(point.x(), point.y(), point.z()), 1, indices, distances);
-            if (distances[0] < 0.5f) {
-                mapping[vertex] = vertices.size();
-                vertices.push_back(Vertex(point.x(), point.y(), point.z()));
-            }
-        }
-
-        for (FaceIndex face : mesh.faces()) {
-            HalfedgeIndex halfedge, end;
-            bool flag = true;
-
-            halfedge = end = mesh.halfedge(face);
-            do {
-                flag &= (mapping.find(mesh.source(halfedge)) != mapping.end());
-                halfedge = mesh.next(halfedge);
-            } while (halfedge != end);
-
-            if (flag) {
-                halfedge = end = mesh.halfedge(face);
-                do {
-                    indices.push_back(mapping[mesh.source(halfedge)]);
-                    halfedge = mesh.next(halfedge);
-                } while (halfedge != end);
-            }
-        }
-    }
-    else {
-        pcl::PointCloud<pcl::PointNormal>::Ptr m_points(new pcl::PointCloud<pcl::PointNormal>);
-        for (Vertex& vertex : this->vertices)
-            m_points->push_back(pcl::PointNormal(vertex.m_position.x, vertex.m_position.y, vertex.m_position.z, vertex.m_normal.x, vertex.m_normal.y, vertex.m_normal.z));
-        pcl::search::KdTree<pcl::PointNormal>::Ptr tree(new pcl::search::KdTree<pcl::PointNormal>);
-        tree->setInputCloud(m_points);
-        pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh);
-
-        if (type == 3) {
-            pcl::GreedyProjectionTriangulation<pcl::PointNormal> gpt;
-            gpt.setSearchRadius(5.0);
-            gpt.setMu(5.0);
-            gpt.setMaximumNearestNeighbors(100);
-            gpt.setMaximumSurfaceAngle(M_PI / 2);
-            gpt.setMinimumAngle(M_PI / 18);
-            gpt.setMaximumAngle(M_PI * 2 / 3);
-            gpt.setNormalConsistency(false);
-            gpt.setInputCloud(m_points);
-            gpt.setSearchMethod(tree);
-            gpt.reconstruct(*mesh);
-        }
-        else if (type == 4) {
-            pcl::MarchingCubesHoppe<pcl::PointNormal> mc;
-            mc.setGridResolution(64, 64, 64);
-            mc.setInputCloud(m_points);
-            mc.setSearchMethod(tree);
-            mc.reconstruct(*mesh);
-        }
-        else if (type == 5) {
-            pcl::MarchingCubesRBF<pcl::PointNormal> mc;
-            mc.setGridResolution(64, 64, 64);
-            mc.setInputCloud(m_points);
-            mc.setSearchMethod(tree);
-            mc.reconstruct(*mesh);
-        }
-
-        fromPCLPointCloud2(mesh->cloud, *m_points);
-        for (pcl::PointNormal& point : *m_points)
-            vertices.push_back(Vertex(point.x, point.y, point.z));
-        for (pcl::Vertices& polygon : mesh->polygons)
-            for (unsigned int vertex : polygon.vertices)
-                indices.push_back(vertex);
-    }*/
-
-    std::vector<Point> points = toPoint(m_points);
-    CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
-    reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
-    reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumFacetLength));
-
-    std::vector<unsigned int> indices;
-    for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
-        for (unsigned int index : *iter)
-            indices.push_back(index);
-    std::cout << indices.size() / 3 << " facet(s) generated by reconstruction." << std::endl;
-
-    return new CMesh(m_points, indices);
-}
+//CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
+//    /*std::vector<Vertex> vertices;
+//    std::vector<unsigned int> indices;
+//
+//    if (type == 0) {
+//        std::vector<CPoint> m_points = toPoint(this->vertices);
+//        std::vector<std::array<std::size_t, 3>> facets;
+//        CGAL::advancing_front_surface_reconstruction(m_points.begin(), m_points.end(), std::back_inserter(facets));
+//
+//        vertices = this->vertices;
+//        for (std::array<std::size_t, 3>& facet : facets)
+//            for (size_t index : facet)
+//                indices.push_back(index);
+//    }
+//    else if (type == 1) {
+//        std::vector<CPoint> m_points = toPoint(this->vertices);
+//        CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(m_points.begin(), m_points.end());
+//        reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
+//        reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(1.0));
+//
+//        vertices = this->vertices;
+//        for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
+//            for (unsigned int index : *iter)
+//                indices.push_back(index);
+//    }
+//    else if (type == 2) {
+//        std::vector<PointNormal> m_points = toPointNormal(this->vertices);
+//        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+//        for (Vertex& vertex : this->vertices)
+//            cloud->push_back(pcl::PointXYZ(vertex.m_position.x, vertex.m_position.y, vertex.m_position.z));
+//        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+//        tree->setInputCloud(cloud);
+//
+//        SurfaceMesh mesh;
+//        CGAL::poisson_surface_reconstruction_delaunay(m_points.begin(), m_points.end(), CGAL::First_of_pair_property_map<PointNormal>(), CGAL::Second_of_pair_property_map<PointNormal>(), mesh, 1.0);
+//
+//        std::map<VertexIndex, unsigned int> mapping;
+//        for (VertexIndex vertex : mesh.vertices()) {
+//            CPoint point = mesh.point(vertex);
+//            std::vector<int> indices;
+//            std::vector<float> distances;
+//            tree->nearestKSearch(pcl::PointXYZ(point.x(), point.y(), point.z()), 1, indices, distances);
+//            if (distances[0] < 0.5f) {
+//                mapping[vertex] = vertices.size();
+//                vertices.push_back(Vertex(point.x(), point.y(), point.z()));
+//            }
+//        }
+//
+//        for (FaceIndex face : mesh.faces()) {
+//            HalfedgeIndex halfedge, end;
+//            bool flag = true;
+//
+//            halfedge = end = mesh.halfedge(face);
+//            do {
+//                flag &= (mapping.find(mesh.source(halfedge)) != mapping.end());
+//                halfedge = mesh.next(halfedge);
+//            } while (halfedge != end);
+//
+//            if (flag) {
+//                halfedge = end = mesh.halfedge(face);
+//                do {
+//                    indices.push_back(mapping[mesh.source(halfedge)]);
+//                    halfedge = mesh.next(halfedge);
+//                } while (halfedge != end);
+//            }
+//        }
+//    }
+//    else {
+//        pcl::PointCloud<pcl::PointNormal>::Ptr m_points(new pcl::PointCloud<pcl::PointNormal>);
+//        for (Vertex& vertex : this->vertices)
+//            m_points->push_back(pcl::PointNormal(vertex.m_position.x, vertex.m_position.y, vertex.m_position.z, vertex.m_normal.x, vertex.m_normal.y, vertex.m_normal.z));
+//        pcl::search::KdTree<pcl::PointNormal>::Ptr tree(new pcl::search::KdTree<pcl::PointNormal>);
+//        tree->setInputCloud(m_points);
+//        pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh);
+//
+//        if (type == 3) {
+//            pcl::GreedyProjectionTriangulation<pcl::PointNormal> gpt;
+//            gpt.setSearchRadius(5.0);
+//            gpt.setMu(5.0);
+//            gpt.setMaximumNearestNeighbors(100);
+//            gpt.setMaximumSurfaceAngle(M_PI / 2);
+//            gpt.setMinimumAngle(M_PI / 18);
+//            gpt.setMaximumAngle(M_PI * 2 / 3);
+//            gpt.setNormalConsistency(false);
+//            gpt.setInputCloud(m_points);
+//            gpt.setSearchMethod(tree);
+//            gpt.reconstruct(*mesh);
+//        }
+//        else if (type == 4) {
+//            pcl::MarchingCubesHoppe<pcl::PointNormal> mc;
+//            mc.setGridResolution(64, 64, 64);
+//            mc.setInputCloud(m_points);
+//            mc.setSearchMethod(tree);
+//            mc.reconstruct(*mesh);
+//        }
+//        else if (type == 5) {
+//            pcl::MarchingCubesRBF<pcl::PointNormal> mc;
+//            mc.setGridResolution(64, 64, 64);
+//            mc.setInputCloud(m_points);
+//            mc.setSearchMethod(tree);
+//            mc.reconstruct(*mesh);
+//        }
+//
+//        fromPCLPointCloud2(mesh->cloud, *m_points);
+//        for (pcl::PointNormal& point : *m_points)
+//            vertices.push_back(Vertex(point.x, point.y, point.z));
+//        for (pcl::Vertices& polygon : mesh->polygons)
+//            for (unsigned int vertex : polygon.vertices)
+//                indices.push_back(vertex);
+//    }*/
+//
+//    std::vector<Point> points = toPoint(m_points);
+//    CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
+//    reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
+//    reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumFacetLength));
+//
+//    std::vector<unsigned int> indices;
+//    for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
+//        for (unsigned int index : *iter)
+//            indices.push_back(index);
+//    std::cout << indices.size() / 3 << " facet(s) generated by reconstruction." << std::endl;
+//
+//    return new CMesh(m_points, indices);
+//}
 
 void CPointSet::render() const {
     glPointSize(5);

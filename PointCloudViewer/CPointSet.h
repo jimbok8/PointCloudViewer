@@ -12,25 +12,25 @@
 #include <ANN/ANN.h>
 #include <glad/glad.h>
 
-#include <CGAL/bilateral_smooth_point_set.h>
-#include <CGAL/Advancing_front_surface_reconstruction.h>
-#include <CGAL/Scale_space_surface_reconstruction_3.h>
-#include <CGAL/Scale_space_reconstruction_3/Jet_smoother.h>
-#include <CGAL/Scale_space_reconstruction_3/Advancing_front_mesher.h>
-#include <CGAL/Surface_mesh.h>
+//#include <CGAL/bilateral_smooth_point_set.h>
+//#include <CGAL/Advancing_front_surface_reconstruction.h>
+//#include <CGAL/Scale_space_surface_reconstruction_3.h>
+//#include <CGAL/Scale_space_reconstruction_3/Jet_smoother.h>
+//#include <CGAL/Scale_space_reconstruction_3/Advancing_front_mesher.h>
+//#include <CGAL/Surface_mesh.h>
 
 #include "UtilsHelper.h"
 #include "CPoint.h"
 #include "CMesh.h"
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef Kernel::Point_3 Point;
-typedef Kernel::Vector_3 Vector;
-typedef std::pair<Point, Vector> PointNormal;
-typedef CGAL::Surface_mesh<CPoint> SurfaceMesh;
-typedef SurfaceMesh::Vertex_index VertexIndex;
-typedef SurfaceMesh::Face_index FaceIndex;
-typedef SurfaceMesh::Halfedge_index HalfedgeIndex;
+//typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
+//typedef Kernel::Point_3 Point;
+//typedef Kernel::Vector_3 Vector;
+//typedef std::pair<Point, Vector> PointNormal;
+//typedef CGAL::Surface_mesh<CPoint> SurfaceMesh;
+//typedef SurfaceMesh::Vertex_index VertexIndex;
+//typedef SurfaceMesh::Face_index FaceIndex;
+//typedef SurfaceMesh::Halfedge_index HalfedgeIndex;
 
 class CPointSet {
 private:
@@ -38,10 +38,10 @@ private:
     ANNpointArray m_pointArray;
     ANNkd_tree* m_tree;
     unsigned int m_vao;
-    std::vector<Point> toPoint(const std::vector<CPoint>& points) const;
+   /* std::vector<Point> toPoint(const std::vector<CPoint>& points) const;
     std::vector<CPoint> fromPoint(const std::vector<Point>& points) const;
     std::vector<PointNormal> toPointNormal(const std::vector<CPoint>& points) const;
-    std::vector<CPoint> fromPointNormal(const std::vector<PointNormal>& points) const;
+    std::vector<CPoint> fromPointNormal(const std::vector<PointNormal>& points) const;*/
     void calculateNormals(int k = 50);
     float averageSpacing(int k = 6) const;
     std::vector<std::vector<int>> calculateNeighbors(const std::vector<CPoint>& points, const float radius) const;
@@ -51,10 +51,11 @@ private:
 public:
     CPointSet(const std::vector<CPoint>& points);
     ~CPointSet();
+    std::vector<CPoint> getPoints() const;
     CPointSet* simplify(const float epsilon) const;
     CPointSet* resample(float sharpnessAngle, float edgeSensitivity, float neighborRadius, int size) const;
-    CPointSet* smooth(const int k) const;
-    CMesh* reconstruct(const double maximumFacetLength) const;
+    //CPointSet* smooth(const int k) const;
+    //CMesh* reconstruct(const double maximumFacetLength) const;
     void render() const;
 };
 
