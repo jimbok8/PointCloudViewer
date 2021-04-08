@@ -12,7 +12,7 @@
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
-const float EPSILON = 1e-5f;
+const float EPSILON = 1e-8f;
 
 static std::vector<CPoint> points;
 static std::vector<Vertex> vertices;
@@ -33,22 +33,28 @@ static bool compareVertex(const Vertex& a, const Vertex& b) {
     return true;
 }
 
-static bool compare(std::vector<CPoint>& points, std::vector<Vertex>& vertices) {
-    if (points.size() != vertices.size())
+static bool comparePointSet(std::vector<CPoint>& points, std::vector<Vertex>& vertices) {
+    if (points.size() != vertices.size()) {
+        std::cout << points.size() << ' ' << vertices.size() << std::endl;
         return false;
+    }
 
     std::sort(points.begin(), points.end(), comparePoint);
     std::sort(vertices.begin(), vertices.end(), compareVertex);
     for (int i = 0; i < points.size(); i++) {
         Eigen::Vector3f position(vertices[i].position.x, vertices[i].position.y, vertices[i].position.z);
-        if ((points[i].m_position - position).squaredNorm() > EPSILON)
+        if ((points[i].m_position - position).squaredNorm() > EPSILON) {
+            std::cout << i << std::endl;
+            std::cout << points[i].m_position << std::endl;
+            std::cout << position << std::endl;
             return false;
+        }
         
         Eigen::Vector3f normal(vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z);
-        if ((points[i].m_normal - normal).squaredNorm() > EPSILON && (points[i].m_normal + normal).squaredNorm() > EPSILON) {
+        if ((points[i].m_normal - normal).squaredNorm() > 0.01f && (points[i].m_normal + normal).squaredNorm() > 0.01f) {
             std::cout << i << std::endl;
-            std::cout << points[i].m_normal << std::endl << normal << std::endl;
-            std::cout << (points[i].m_normal - normal).squaredNorm() << ' ' << (points[i].m_normal + normal).squaredNorm() << std::endl;
+            std::cout << points[i].m_normal << std::endl;
+            std::cout << normal << std::endl;
             return false;
         }
     }
@@ -56,16 +62,16 @@ static bool compare(std::vector<CPoint>& points, std::vector<Vertex>& vertices) 
     return true;
 }
 
-static bool TestCalculateNormals() {
+static bool TestConstructor() {
     points = (new CPointSet(points))->getPoints();
     vertices = PointSet(vertices).getVertices();
-    return compare(points, vertices);
+    return comparePointSet(points, vertices);
 }
 
 static bool TestSimplify() {
     points = (new CPointSet(points))->simplify(epsilon)->getPoints();
     vertices = PointSet(vertices).simplify(epsilon).getVertices();
-    return compare(points, vertices);
+    return comparePointSet(points, vertices);
 }
 
 int main() {
@@ -101,12 +107,12 @@ int main() {
         getline(fin, s);
     }
 
-    if (!TestCalculateNormals())
-        std::cout << "TestCalculateNormals failed." << std::endl;
+    if (!TestConstructor())
+        std::cout << "TestConstructor failed." << std::endl;
     else if (!TestSimplify())
         std::cout << "TestSimplify failed." << std::endl;
     else
         std::cout << "Test passed." << std::endl;
-    
+
     return 0;
 }

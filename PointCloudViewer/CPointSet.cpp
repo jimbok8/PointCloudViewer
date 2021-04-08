@@ -66,7 +66,7 @@ CPointSet::~CPointSet() {
 //}
 
 void CPointSet::calculateNormals(int k) {
-    k = std::min(k, (int)m_points.size());
+    k = std::min(k + 1, (int)m_points.size());
 
     ANNidxArray indices = new ANNidx[k];
     ANNdistArray distances = new ANNdist[k];
@@ -287,26 +287,17 @@ std::vector<CPoint> CPointSet::getPoints() const {
 }
 
 CPointSet* CPointSet::simplify(const float epsilon) const {
-    float minX, minY, minZ;
-    minX = minY = minZ = FLT_MAX;
-
-    for (const CPoint& point : m_points) {
-        minX = std::min(minX, point.m_position(0));
-        minY = std::min(minY, point.m_position(1));
-        minZ = std::min(minZ, point.m_position(2));
-    }
-
     std::map<std::tuple<int, int, int>, std::vector<int>> map;
     for (int i = 0; i < m_points.size(); i++) {
-        int x = (int)((m_points[i].m_position(0) - minX) / epsilon);
-        int y = (int)((m_points[i].m_position(1) - minY) / epsilon);
-        int z = (int)((m_points[i].m_position(2) - minZ) / epsilon);
+        int x = (int)std::floor(m_points[i].m_position(0) / epsilon);
+        int y = (int)std::floor(m_points[i].m_position(1) / epsilon);
+        int z = (int)std::floor(m_points[i].m_position(2) / epsilon);
         map[std::make_tuple(x, y, z)].push_back(i);
     }
 
     std::vector<CPoint> points;
     for (const std::pair<std::tuple<int, int, int>, std::vector<int>>& pair : map)
-        points.push_back(m_points[pair.second[randomUniform(pair.second.size())]]);
+        points.push_back(m_points[pair.second[0]]);
 
     return new CPointSet(points);
 }
