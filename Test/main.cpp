@@ -34,17 +34,6 @@ static bool compareVertex(const Vertex& a, const Vertex& b) {
 }
 
 static bool comparePointSet() {
-    std::ofstream fout;
-    fout.open("own.txt");
-    for (const CPoint& point : points)
-        fout << point.m_position(0) << ' ' << point.m_position(1) << ' ' << point.m_position(2) << std::endl;
-    fout.close();
-    
-    fout.open("lib.txt");
-    for (const Vertex& vertex : vertices)
-        fout << vertex.position.x << ' ' << vertex.position.y << ' ' << vertex.position.z << std::endl;
-    fout.close();
-
     if (points.size() != vertices.size()) {
         std::cout << points.size() << ' ' << vertices.size() << std::endl;
         return false;

@@ -13,11 +13,12 @@
 #include <imgui_impl_opengl3.h>
 
 #include "UtilsHelper.h"
-#include "ParameterHelper.h"
 #include "CPoint.h"
 #include "CPointSet.h"
 #include "CMesh.h"
 #include "CShader.h"
+#include "CSimplifyParameter.h"
+#include "CResampleParameter.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
@@ -151,6 +152,8 @@ int main(int argc, char** argv) {
     //std::vector<CMesh*> reconstructs(numCluster, nullptr);
 
     int display = 0, color = 0, cluster = 0;
+    CSimplifyParameter simplifyParameter(0.3f);
+    CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 10000);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -184,35 +187,35 @@ int main(int argc, char** argv) {
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Simplifying options", true)) {
-            ImGui::InputFloat("epsilon", &epsilon);
+            ImGui::InputFloat("epsilon", &simplifyParameter.m_epsilon);
             ImGui::TreePop();
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Upsampling options", true)) {
-            ImGui::InputFloat("sharpnessAngle", &sharpnessAngle);
-            ImGui::InputFloat("edgeSensitivity", &edgeSensitivity);
-            ImGui::InputFloat("neighborRadius", &neighborRadius);
-            ImGui::InputInt("size", &size);
+            ImGui::InputFloat("sharpnessAngle", &resampleParameter.m_sharpnessAngle);
+            ImGui::InputFloat("edgeSensitivity", &resampleParameter.m_edgeSensitivity);
+            ImGui::InputFloat("neighborRadius", &resampleParameter.m_neighborRadius);
+            ImGui::InputInt("size", &resampleParameter.m_size);
             ImGui::TreePop();
         }
 
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Smoothing options", true)) {
-            ImGui::InputInt("k", &k);
-            ImGui::TreePop();
-        }
+        //ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        //if (ImGui::TreeNodeEx("Smoothing options", true)) {
+        //    ImGui::InputInt("k", &k);
+        //    ImGui::TreePop();
+        //}
 
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNodeEx("Reconstructing options", true)) {
-            ImGui::InputFloat("maximumFacetLength", &maximumFacetLength);
-            ImGui::TreePop();
-        }
+        //ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        //if (ImGui::TreeNodeEx("Reconstructing options", true)) {
+        //    ImGui::InputFloat("maximumFacetLength", &maximumFacetLength);
+        //    ImGui::TreePop();
+        //}
 
         if (ImGui::Button("Simplify"))
-            simplifies[cluster] = origins[cluster]->simplify(epsilon);
+            simplifies[cluster] = origins[cluster]->simplify(simplifyParameter);
         if (ImGui::Button("Upsample") && simplifies[cluster] != nullptr)
-            resamples[cluster] = simplifies[cluster]->resample(sharpnessAngle, edgeSensitivity, neighborRadius, size);
+            resamples[cluster] = simplifies[cluster]->resample(resampleParameter);
         /*if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
             smoothes[cluster] = resamples[cluster]->smooth(k);
         if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)

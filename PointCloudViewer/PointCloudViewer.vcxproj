@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -152,12 +152,16 @@
     <ClCompile Include="CPointSet.cpp" />
     <ClCompile Include="CShader.cpp" />
     <ClCompile Include="ParameterHelper.h" />
+    <ClCompile Include="CResampleParameter.cpp" />
+    <ClCompile Include="CSimplifyParameter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMesh.h" />
     <ClInclude Include="CPoint.h" />
     <ClInclude Include="CPointSet.h" />
     <ClInclude Include="CShader.h" />
+    <ClInclude Include="CResampleParameter.h" />
+    <ClInclude Include="CSimplifyParameter.h" />
     <ClInclude Include="UtilsHelper.h" />
   </ItemGroup>
   <ItemGroup>

@@ -33,6 +33,12 @@
     <ClCompile Include="ParameterHelper.h">
       <Filter>头文件</Filter>
     </ClCompile>
+    <ClCompile Include="CSimplifyParameter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CResampleParameter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UtilsHelper.h">
@@ -48,6 +54,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CSimplifyParameter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CResampleParameter.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
