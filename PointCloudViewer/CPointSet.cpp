@@ -297,7 +297,7 @@ CPointSet* CPointSet::simplify(const float epsilon) const {
 
     std::vector<CPoint> points;
     for (const std::pair<std::tuple<int, int, int>, std::vector<int>>& pair : map)
-        points.push_back(m_points[pair.second[0]]);
+        points.push_back(m_points[*pair.second.begin()]);
 
     return new CPointSet(points);
 }
