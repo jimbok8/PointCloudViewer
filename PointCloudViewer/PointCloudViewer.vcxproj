@@ -151,7 +151,6 @@
     <ClCompile Include="CPoint.cpp" />
     <ClCompile Include="CPointSet.cpp" />
     <ClCompile Include="CShader.cpp" />
-    <ClCompile Include="ParameterHelper.h" />
     <ClCompile Include="CResampleParameter.cpp" />
     <ClCompile Include="CSimplifyParameter.cpp" />
   </ItemGroup>

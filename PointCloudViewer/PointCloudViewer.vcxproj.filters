@@ -30,9 +30,6 @@
     <ClCompile Include="CShader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ParameterHelper.h">
-      <Filter>头文件</Filter>
-    </ClCompile>
     <ClCompile Include="CSimplifyParameter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
