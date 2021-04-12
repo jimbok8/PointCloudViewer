@@ -151,9 +151,6 @@
     <ProjectReference Include="..\PointCloudViewer\PointCloudViewer.vcxproj">
       <Project>{e1b06ce4-3d34-457d-bbcd-9b0ff1b35005}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Reconstructor\Reconstructor.vcxproj">
-      <Project>{d964b2b2-c30e-4efc-9b06-54811409d9fe}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

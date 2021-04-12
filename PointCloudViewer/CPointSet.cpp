@@ -30,7 +30,6 @@ CPointSet::CPointSet(const std::vector<CPoint>& points) :
 CPointSet::~CPointSet() {
     annDeallocPts(m_pointArray);
     delete m_tree;
-    annClose();
 }
 
 //std::vector<Point> CPointSet::toPoint(const std::vector<CPoint>& points) const {
@@ -124,7 +123,7 @@ void CPointSet::calculateNormals(int k) {
 }
 
 float CPointSet::averageSpacing(int k) const {
-    k = std::min(k, (int)m_points.size());
+    k = std::min(k + 1, (int)m_points.size());
 
     ANNidxArray indices = new ANNidx[k];
     ANNdistArray distances = new ANNdist[k];
@@ -135,7 +134,7 @@ float CPointSet::averageSpacing(int k) const {
         m_tree->annkSearch(m_pointArray[i], k, indices, distances);
         float sum = 0.0f;
         for (int j = 0; j < k; j++)
-            sum += distances[j];
+            sum += std::sqrt(distances[j]);
         ans += sum / (float)k;
     }
 
@@ -188,21 +187,21 @@ void CPointSet::selectBasePoint(const std::vector<CPoint>& points, const int ind
     for (int i = 0; i < neighbors.size(); i++) {
         CPoint t = points[neighbors[i]];
         Eigen::Vector3f midPoint = (v.m_position + t.m_position) * 0.5f;
-        float dotProduce = std::pow(2.0f - v.m_normal.dot(t.m_normal), edgeSensitivity);
+        float dotProduct = std::pow(2.0f - v.m_normal.dot(t.m_normal), edgeSensitivity);
         Eigen::Vector3f diffT = midPoint - t.m_position;
-        float projectionT = diffT.dot(t.m_normal);
-        float minDist2 = diffT.squaredNorm() - projectionT * projectionT;
+        float projectT = diffT.dot(t.m_normal);
+        float minDist2 = diffT.squaredNorm() - projectT * projectT;
 
         for (int j = 0; j < neighbors.size(); j++) {
             CPoint s = points[neighbors[j]];
             Eigen::Vector3f diffS = midPoint - s.m_position;
-            float projectionS = diffS.dot(s.m_normal);
-            float dist2 = diffS.squaredNorm() - projectionS * projectionS;
+            float projectS = diffS.dot(s.m_normal);
+            float dist2 = diffS.squaredNorm() - projectS * projectS;
             if (dist2 < minDist2)
                 minDist2 = dist2;
         }
 
-        minDist2 *= dotProduce;
+        minDist2 *= dotProduct;
 
         if (minDist2 > bestDist2) {
             bestDist2 = minDist2;
