@@ -77,9 +77,8 @@ void CPointSet::calculateNormals(const int k) {
     std::vector<float> dist(m_points.size(), FLT_MAX);
     std::vector<bool> flag(m_points.size(), false);
     std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> heap;
-    int seed = randomUniform(m_points.size());
-    dist[seed] = 0.0f;
-    heap.push(std::make_pair(dist[seed], seed));
+    dist[0] = 0.0f;
+    heap.push(std::make_pair(dist[0], 0));
     while (!heap.empty()) {
         int now = heap.top().second;
         heap.pop();

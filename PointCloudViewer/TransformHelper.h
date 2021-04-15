@@ -81,8 +81,4 @@ static Eigen::Matrix4f perspective(const float fovy, const float aspect, const f
     return ans;
 }
 
-static int randomUniform(const int range) {
-    return g_uniform(g_engine) % range;
-}
-
 #endif

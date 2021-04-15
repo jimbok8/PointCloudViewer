@@ -12,7 +12,6 @@
 #include <ANN/ANN.h>
 #include <glad/glad.h>
 
-#include "UtilsHelper.h"
 #include "CPoint.h"
 #include "CMesh.h"
 #include "CSimplifyParameter.h"
