@@ -32,59 +32,44 @@ CPointSet::~CPointSet() {
     delete m_tree;
 }
 
-//std::vector<Point> CPointSet::toPoint(const std::vector<CPoint>& points) const {
-//    std::vector<Point> ans;
-//    for (const CPoint& point : points)
-//        ans.push_back(Point(point.m_position(0), point.m_position(1), point.m_position(2)));
-//
-//    return ans;
-//}
-//
-//std::vector<CPoint> CPointSet::fromPoint(const std::vector<Point>& points) const {
-//    std::vector<CPoint> ans;
-//    for (const Point& point : points)
-//        ans.push_back(CPoint(Eigen::Vector3f(point.x(), point.y(), point.z())));
-//
-//    return ans;
-//}
-//
-//std::vector<PointNormal> CPointSet::toPointNormal(const std::vector<CPoint>& points) const {
-//    std::vector<PointNormal> ans;
-//    for (const CPoint& point : points)
-//        ans.push_back(std::make_pair(Point(point.m_position(0), point.m_position(1), point.m_position(2)), Vector(point.m_normal(0), point.m_normal(1), point.m_normal(2))));
-//
-//    return ans;
-//}
-//
-//std::vector<CPoint> CPointSet::fromPointNormal(const std::vector<PointNormal>& points) const {
-//    std::vector<CPoint> ans;
-//    for (const PointNormal& point : points)
-//        ans.push_back(CPoint(Eigen::Vector3f(point.first.x(), point.first.y(), point.first.z()), Eigen::Vector3f(point.second.x(), point.second.y(), point.second.z())));
-//
-//    return ans;
-//}
-
-void CPointSet::calculateNormals(int k) {
+std::vector<std::vector<int>> CPointSet::calculateKNeighbors(int k) const {
     k = std::min(k + 1, (int)m_points.size());
 
     ANNidxArray indices = new ANNidx[k];
     ANNdistArray distances = new ANNdist[k];
 
-    std::vector<std::vector<std::pair<int, float>>> graph(m_points.size());
+    std::vector<std::vector<int>> ans;
     for (int i = 0; i < m_points.size(); i++) {
+        ans.push_back(std::vector<int>());
         m_tree->annkSearch(m_pointArray[i], k, indices, distances);
+        for (int j = 0; j < k; j++)
+            ans[i].push_back(indices[j]);
+    }
+
+    delete[] indices;
+    delete[] distances;
+
+    return ans;
+}
+
+void CPointSet::calculateNormals(int k) {
+    std::vector<std::vector<int>> neighbors = calculateKNeighbors(k);
+    std::vector<std::vector<std::pair<int, float>>> graph;
+    for (int i = 0; i < m_points.size(); i++) {
+        graph.push_back(std::vector<std::pair<int, float>>());
 
         Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
-        for (int j = 0; j < k; j++) {
-            avg += m_points[indices[j]].m_position;
-            graph[i].push_back(std::make_pair(indices[j], distances[j]));
-            graph[indices[j]].push_back(std::make_pair(i, distances[j]));
+        for (const int neighbor : neighbors[i]) {
+            avg += m_points[neighbor].m_position;
+            float dist2 = (m_points[i].m_position - m_points[neighbor].m_position).squaredNorm();
+            graph[i].push_back(std::make_pair(neighbor, dist2));
+            graph[neighbor].push_back(std::make_pair(i, dist2));
         }
         avg /= k;
 
         Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
-        for (int j = 0; j < k; j++) {
-            Eigen::Vector3f x = m_points[indices[j]].m_position - avg;
+        for (const int neighbor : neighbors[i]) {
+            Eigen::Vector3f x = m_points[neighbor].m_position - avg;
             cov += x * x.transpose();
         }
         cov /= k;
@@ -117,9 +102,6 @@ void CPointSet::calculateNormals(int k) {
             }
         }
     }
-
-    delete[] indices;
-    delete[] distances;
 }
 
 float CPointSet::averageSpacing(int k) const {
@@ -144,7 +126,7 @@ float CPointSet::averageSpacing(int k) const {
     return ans / (float)m_points.size();
 }
 
-std::vector<std::vector<int>> CPointSet::calculateNeighbors(const std::vector<CPoint>& points, const float radius) const {
+std::vector<std::vector<int>> CPointSet::calculateRadiusNeighbors(const std::vector<CPoint>& points, const float radius) const {
     ANNpointArray pointArray = annAllocPts(points.size(), 3);
     for (int i = 0; i < points.size(); i++)
         for (int j = 0; j < 3; j++)
@@ -317,7 +299,7 @@ CPointSet* CPointSet::resample(const CResampleParameter& parameter) const {
     sharpnessAngle = std::pow(std::max(1e-8f, 1.0f - cosSigma), 2.0f);
 
     std::vector<CPoint> points(m_points);
-    std::vector<std::vector<int>> neighbors = calculateNeighbors(points, neighborRadius);
+    std::vector<std::vector<int>> neighbors = calculateRadiusNeighbors(points, neighborRadius);
 
     float currentRadius = neighborRadius;
     float densityPassThreshold = 0.0f;
@@ -329,7 +311,7 @@ CPointSet* CPointSet::resample(const CResampleParameter& parameter) const {
             currentRadius *= 0.75f;
             if (currentRadius < densityPassThreshold * 3.0f)
                 currentRadius = densityPassThreshold * 3.0f;
-            neighbors = calculateNeighbors(points, currentRadius);
+            neighbors = calculateRadiusNeighbors(points, currentRadius);
         }
         else {
             for (int i = 0; i < points.size() * 0.05f; i++) {
@@ -396,7 +378,14 @@ CPointSet* CPointSet::resample(const CResampleParameter& parameter) const {
     return new CPointSet(points);
 }
 
-CPointSet* CPointSet::smooth(const int k) const {
+CPointSet* CPointSet::smooth(const CSmoothParameter& parameter) const {
+    int k = parameter.m_k;
+    float sharpnessAngle = parameter.m_sharpnessAngle;
+
+    k = std::min(k + 1, (int)m_points.size());
+
+
+    for ()
     // TODO
     return nullptr;
 }

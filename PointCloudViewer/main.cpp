@@ -19,6 +19,7 @@
 #include "CShader.h"
 #include "CSimplifyParameter.h"
 #include "CResampleParameter.h"
+#include "CSmoothParameter.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
@@ -154,6 +155,7 @@ int main(int argc, char** argv) {
     int display = 0, color = 0, cluster = 0;
     CSimplifyParameter simplifyParameter(0.3f);
     CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 10000);
+    CSmoothParameter smoothParameter(64, 30.0f);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
