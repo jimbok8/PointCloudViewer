@@ -6,7 +6,6 @@ CPointSet::CPointSet(const std::vector<CPoint>& points) :
     for (int i = 0; i < points.size(); i++)
         for (int j = 0; j < 3; j++)
             m_pointArray[i][j] = points[i].m_position(j);
-
     m_tree = new ANNkd_tree(m_pointArray, points.size(), 3);
 
     calculateNormals();
@@ -37,7 +36,6 @@ std::vector<std::vector<int>> CPointSet::calculateKNeighbors(int k) const {
 
     ANNidxArray indices = new ANNidx[k];
     ANNdistArray distances = new ANNdist[k];
-
     std::vector<std::vector<int>> ans;
     for (int i = 0; i < m_points.size(); i++) {
         ans.push_back(std::vector<int>());
@@ -45,19 +43,16 @@ std::vector<std::vector<int>> CPointSet::calculateKNeighbors(int k) const {
         for (int j = 0; j < k; j++)
             ans[i].push_back(indices[j]);
     }
-
     delete[] indices;
     delete[] distances;
 
     return ans;
 }
 
-void CPointSet::calculateNormals(int k) {
+void CPointSet::calculateNormals(const int k) {
     std::vector<std::vector<int>> neighbors = calculateKNeighbors(k);
-    std::vector<std::vector<std::pair<int, float>>> graph;
+    std::vector<std::vector<std::pair<int, float>>> graph(m_points.size());
     for (int i = 0; i < m_points.size(); i++) {
-        graph.push_back(std::vector<std::pair<int, float>>());
-
         Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
         for (const int neighbor : neighbors[i]) {
             avg += m_points[neighbor].m_position;
@@ -65,14 +60,14 @@ void CPointSet::calculateNormals(int k) {
             graph[i].push_back(std::make_pair(neighbor, dist2));
             graph[neighbor].push_back(std::make_pair(i, dist2));
         }
-        avg /= k;
+        avg /= (float)neighbors[i].size();
 
         Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
         for (const int neighbor : neighbors[i]) {
             Eigen::Vector3f x = m_points[neighbor].m_position - avg;
             cov += x * x.transpose();
         }
-        cov /= k;
+        cov /= (float)neighbors[i].size();
 
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
         solver.compute(cov);
@@ -82,7 +77,6 @@ void CPointSet::calculateNormals(int k) {
     std::vector<float> dist(m_points.size(), FLT_MAX);
     std::vector<bool> flag(m_points.size(), false);
     std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> heap;
-
     int seed = randomUniform(m_points.size());
     dist[seed] = 0.0f;
     heap.push(std::make_pair(dist[seed], seed));
@@ -104,26 +98,18 @@ void CPointSet::calculateNormals(int k) {
     }
 }
 
-float CPointSet::averageSpacing(int k) const {
-    k = std::min(k + 1, (int)m_points.size());
-
-    ANNidxArray indices = new ANNidx[k];
-    ANNdistArray distances = new ANNdist[k];
+float CPointSet::averageSpacing(const int k) const {
+    std::vector<std::vector<int>> neighbors = calculateKNeighbors(k);
     float ans = 0.0f;
-
     for (int i = 0; i < m_points.size(); i++) {
-        ANNpoint point = m_pointArray[i];
-        m_tree->annkSearch(m_pointArray[i], k, indices, distances);
         float sum = 0.0f;
-        for (int j = 0; j < k; j++)
-            sum += std::sqrt(distances[j]);
-        ans += sum / (float)k;
+        for (const int neighbor : neighbors[i])
+            sum += (m_points[i].m_position - m_points[neighbor].m_position).norm();
+        ans += sum / (float)neighbors[i].size();
     }
+    ans /= (float)m_points.size();
 
-    delete[] indices;
-    delete[] distances;
-
-    return ans / (float)m_points.size();
+    return ans;
 }
 
 std::vector<std::vector<int>> CPointSet::calculateRadiusNeighbors(const std::vector<CPoint>& points, const float radius) const {
@@ -182,7 +168,6 @@ void CPointSet::selectBasePoint(const std::vector<CPoint>& points, const int ind
             if (dist2 < minDist2)
                 minDist2 = dist2;
         }
-
         minDist2 *= dotProduct;
 
         if (minDist2 > bestDist2) {
@@ -220,19 +205,19 @@ void CPointSet::updateNewPoint(std::vector<CPoint>& points, std::vector<std::vec
     std::vector<Eigen::Vector3f> normalSum(2, Eigen::Vector3f::Zero());
     std::vector<float> weightSum(2, 0.0f);
     float radius16 = -4.0f / radius2;
-    for (int i = 0; i < neighbors[newIndex].size(); i++) {
-        CPoint t = points[neighbors[newIndex][i]];
+    for (const int neighbor : neighbors[newIndex]) {
+        CPoint t = points[neighbor];
         float dist2 = (v.m_position - t.m_position).squaredNorm();
         float theta = std::exp(dist2 * radius16);
 
-        for (int j = 0; j < 2; j++) {
-            float psi = std::exp(-std::pow(1.0f - normalCandidates[j].dot(t.m_normal), 2) / sharpnessAngle);
+        for (int i = 0; i < 2; i++) {
+            float psi = std::exp(-std::pow(1.0f - normalCandidates[i].dot(t.m_normal), 2) / sharpnessAngle);
             float projectDiff = (t.m_position - v.m_position).dot(t.m_normal);
             float weight = psi * theta;
 
-            projectDistSum[j] += projectDiff * weight;
-            normalSum[j] += t.m_normal * weight;
-            weightSum[j] += weight;
+            projectDistSum[i] += projectDiff * weight;
+            normalSum[i] += t.m_normal * weight;
+            weightSum[i] += weight;
         }
     }
 
@@ -382,12 +367,47 @@ CPointSet* CPointSet::smooth(const CSmoothParameter& parameter) const {
     int k = parameter.m_k;
     float sharpnessAngle = parameter.m_sharpnessAngle;
 
-    k = std::min(k + 1, (int)m_points.size());
+    float cosSigma = std::cos(sharpnessAngle / 180.0f * std::acos(-1.0f));
+    sharpnessAngle = std::pow(std::max(1e-8f, 1.0f - cosSigma), 2.0f);
 
+    std::vector<std::vector<int>> neighbors = calculateKNeighbors(k);
+    float radius = 0.0f;
+    for (int i = 0; i < m_points.size(); i++)
+        for (const int neighbor : neighbors[i])
+            radius = std::max(radius, (m_points[i].m_position - m_points[neighbor].m_position).norm());
+    radius *= 0.95;
 
-    for ()
-    // TODO
-    return nullptr;
+    float radius2 = radius * radius;
+    float radius16 = -4.0f / radius2;
+    std::vector<CPoint> points;
+    for (int i = 0; i < m_points.size(); i++) {
+        CPoint v = m_points[i];
+        float projectDistSum = 0.0f;
+        Eigen::Vector3f normalSum(0.0f, 0.0f, 0.0f);
+        float weightSum = 0.0f;
+        for (const int neighbor : neighbors[i]) {
+            CPoint t = m_points[neighbor];
+            float dist2 = (v.m_position - t.m_position).squaredNorm();
+            if (dist2 < radius2) {
+                float theta = std::exp(dist2 * radius16);
+                float psi = std::exp(-std::pow(1.0f - v.m_normal.dot(t.m_normal), 2.0f) / sharpnessAngle);
+                float projectDiff = (t.m_position - v.m_position).dot(t.m_normal);
+                float weight = theta * psi;
+
+                projectDistSum += projectDiff * weight;
+                normalSum += t.m_normal * weight;
+                weightSum += weight;
+            }
+        }
+
+        Eigen::Vector3f updateNormal = normalSum / weightSum;
+        Eigen::Vector3f normal = updateNormal / updateNormal.norm();
+        float projectDist = projectDistSum / weightSum;
+        Eigen::Vector3f position = v.m_position + normal * projectDist;
+        points.push_back(CPoint(position, normal));
+    }
+
+    return new CPointSet(points);
 }
 
 CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {

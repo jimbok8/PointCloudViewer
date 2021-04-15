@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
         origins.push_back(new CPointSet(vertices[i]));
     std::vector<CPointSet*> simplifies(numCluster, nullptr);
     std::vector<CPointSet*> resamples(numCluster, nullptr);
-    //std::vector<CPointSet*> smoothes(numCluster, nullptr);
+    std::vector<CPointSet*> smoothes(numCluster, nullptr);
     //std::vector<CMesh*> reconstructs(numCluster, nullptr);
 
     int display = 0, color = 0, cluster = 0;
@@ -202,11 +202,12 @@ int main(int argc, char** argv) {
             ImGui::TreePop();
         }
 
-        //ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        //if (ImGui::TreeNodeEx("Smoothing options", true)) {
-        //    ImGui::InputInt("k", &k);
-        //    ImGui::TreePop();
-        //}
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Smoothing options", true)) {
+            ImGui::InputInt("k", &smoothParameter.m_k);
+            ImGui::InputFloat("sharpnessAngle", &smoothParameter.m_sharpnessAngle);
+            ImGui::TreePop();
+        }
 
         //ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         //if (ImGui::TreeNodeEx("Reconstructing options", true)) {
@@ -218,9 +219,9 @@ int main(int argc, char** argv) {
             simplifies[cluster] = origins[cluster]->simplify(simplifyParameter);
         if (ImGui::Button("Upsample") && simplifies[cluster] != nullptr)
             resamples[cluster] = simplifies[cluster]->resample(resampleParameter);
-        /*if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
-            smoothes[cluster] = resamples[cluster]->smooth(k);
-        if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
+        if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
+            smoothes[cluster] = resamples[cluster]->smooth(smoothParameter);
+        /*if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
             reconstructs[cluster] = smoothes[cluster]->reconstruct(maximumFacetLength);*/
 
         Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
@@ -240,9 +241,9 @@ int main(int argc, char** argv) {
             for (int i = 0; i < numCluster; i++)
                 /*if (display == 4 && reconstructs[i] != nullptr)
                     reconstructs[i]->render();
-                else if (display == 3 && smoothes[i] != nullptr)
+                else */if (display == 3 && smoothes[i] != nullptr)
                     smoothes[i]->render();
-                else */if (display == 2 && resamples[i] != nullptr)
+                else if (display == 2 && resamples[i] != nullptr)
                     resamples[i]->render();
                 else if (display == 1 && simplifies[i] != nullptr)
                     simplifies[i]->render();
@@ -261,9 +262,9 @@ int main(int argc, char** argv) {
                 clusterShader.setVector3D("color", COLORS[i % COLOR_SIZE]);
                 /*if (display == 4 && reconstructs[i] != nullptr)
                     reconstructs[i]->render();
-                else if (display == 3 && smoothes[i] != nullptr)
+                else */if (display == 3 && smoothes[i] != nullptr)
                     smoothes[i]->render();
-                else */if (display == 2 && resamples[i] != nullptr)
+                else if (display == 2 && resamples[i] != nullptr)
                     resamples[i]->render();
                 else if (display == 1 && simplifies[i] != nullptr)
                     simplifies[i]->render();

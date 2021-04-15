@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CSmoothParameter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="CMesh.cpp" />
     <ClCompile Include="CPoint.cpp" />
@@ -161,6 +162,7 @@
     <ClInclude Include="CShader.h" />
     <ClInclude Include="CResampleParameter.h" />
     <ClInclude Include="CSimplifyParameter.h" />
+    <ClInclude Include="CSmoothParameter.h" />
     <ClInclude Include="UtilsHelper.h" />
   </ItemGroup>
   <ItemGroup>

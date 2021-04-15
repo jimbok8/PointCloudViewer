@@ -12,10 +12,12 @@
 #include <CGAL/mst_orient_normals.h>
 #include <CGAL/grid_simplify_point_set.h>
 #include <CGAL/edge_aware_upsample_point_set.h>
+#include <CGAL/bilateral_smooth_point_set.h>
 
 #include "CPointSet.h"
 #include "CSimplifyParameter.h"
 #include "CResampleParameter.h"
+#include "CSmoothParameter.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_3 Point;
@@ -24,57 +26,18 @@ typedef std::pair<Point, Vector> PointNormal;
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
-const float EPSILON = 1e-8f;
 
 static std::vector<PointNormal> points;
 static std::vector<CPoint> cpoints;
 static CSimplifyParameter simplifyParameter(0.3f);
 static CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 3000);
+static CSmoothParameter smoothParameter(64, 30.0f);
 
-/*static bool comparePoint(const PointNormal& a, const PointNormal& b) {
-    for (int i = 0; i < 3; i++)
-        if (a.first[i] != b.first[i])
-            return a.first[i] < b.first[i];
-
-    return true;
-}
-
-static bool compareCPoint(const CPoint& a, const CPoint& b) {
-    for (int i = 0; i < 3; i++)
-        if (a.m_position[i] != b.m_position[i])
-            return a.m_position[i] < b.m_position[i];
-
-    return true;
-}*/
-
-static bool comparePointSet() {
+static bool comparePointSet(const float epsilon) {
     if (points.size() != cpoints.size()) {
         std::cout << "size: " << points.size() << ' ' << cpoints.size() << std::endl;
         return false;
     }
-
-    /*std::sort(points.begin(), points.end(), comparePoint);
-    std::sort(cpoints.begin(), cpoints.end(), compareCPoint);
-
-    for (int i = 0; i < points.size(); i++) {
-        Eigen::Vector3f position(points[i].first.x(), points[i].first.y(), points[i].first.z());
-        if ((cpoints[i].m_position - position).squaredNorm() > EPSILON) {
-            std::cout << i << "th position:" << std::endl;
-            std::cout << position << std::endl;
-            std::cout << cpoints[i].m_position << std::endl;
-            return false;
-        }
-        
-        Eigen::Vector3f normal(points[i].second.x(), points[i].second.y(), points[i].second.z());
-        if ((cpoints[i].m_normal - normal).squaredNorm() > 0.01f && (cpoints[i].m_normal + normal).squaredNorm() > 0.01f) {
-            std::cout << i << "th normal:" << std::endl;
-            std::cout << normal << std::endl;
-            std::cout << cpoints[i].m_normal << std::endl;
-            return false;
-        }
-    }
-    
-    return true;*/
 
     ANNpointArray pointArray = annAllocPts(points.size(), 3);
     for (int i = 0; i < points.size(); i++)
@@ -107,7 +70,7 @@ static bool comparePointSet() {
     delete[] distances;
 
     std::cout << avgPosition << ' ' << avgNormal << std::endl;
-    return avgPosition < 1e-6 && avgNormal < 1e-6;
+    return avgPosition < epsilon&& avgNormal < epsilon;
 }
 
 static void refresh() {
@@ -157,13 +120,25 @@ static void resample(const CResampleParameter& parameter) {
     calculateNormals();
 }
 
+static void smooth(const CSmoothParameter& parameter) {
+    int k = parameter.m_k;
+    float sharpnessAngle = parameter.m_sharpnessAngle;
+
+    CGAL::bilateral_smooth_point_set<CGAL::Sequential_tag>(points, k,
+        CGAL::parameters::
+        point_map(CGAL::First_of_pair_property_map<PointNormal>()).
+        normal_map(CGAL::Second_of_pair_property_map<PointNormal>()).
+        sharpness_angle(sharpnessAngle));
+    calculateNormals();
+}
+
 static bool testConstructor() {
     refresh();
 
     calculateNormals();
     cpoints = (new CPointSet(cpoints))->getPoints();
 
-    return comparePointSet();
+    return comparePointSet(1e-6);
 }
 
 static bool testSimplify() {
@@ -172,7 +147,7 @@ static bool testSimplify() {
     simplify(simplifyParameter);
     cpoints = (new CPointSet(cpoints))->simplify(simplifyParameter)->getPoints();
 
-    return comparePointSet();
+    return comparePointSet(1e-12);
 }
 
 static bool testResample() {
@@ -181,7 +156,16 @@ static bool testResample() {
     resample(resampleParameter);
     cpoints = (new CPointSet(cpoints))->resample(resampleParameter)->getPoints();
 
-    return comparePointSet();
+    return comparePointSet(1e-4);
+}
+
+static bool testSmooth() {
+    refresh();
+    
+    smooth(smoothParameter);
+    cpoints = (new CPointSet(cpoints))->smooth(smoothParameter)->getPoints();
+
+    return comparePointSet(1e-12);
 }
 
 int main() {
@@ -217,13 +201,15 @@ int main() {
     }
 
     if (!testConstructor())
-        std::cout << "TestConstructor failed." << std::endl;
+        std::cout << "Constructor test failed." << std::endl;
     else if (!testSimplify())
-        std::cout << "TestSimplify failed." << std::endl;
+        std::cout << "Simplify test failed." << std::endl;
     else if (!testResample())
-        std::cout << "TestResample failed." << std::endl;
+        std::cout << "Resample test failed." << std::endl;
+    else if (!testSmooth())
+        std::cout << "Smooth test failed." << std::endl;
     else
-        std::cout << "Test passed." << std::endl;
+        std::cout << "All tests passed." << std::endl;
 
     return 0;
 }
