@@ -436,22 +436,17 @@ CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
 
     std::list<CTetrahedron> tetrahedrons;
     tetrahedrons.push_back(CTetrahedron(p0, p1, p2, p3));
-    for (const CPoint& point : m_points) {
-        std::list<CTriangle> triangles;
+    for (int i = 0; i < m_points.size(); i++) {
+        std::set<std::tuple<int, int, int>> triangles;
         for (auto iter = tetrahedrons.begin(); iter != tetrahedrons.end(); )
-            if (iter->contain(point.m_position)) {
-                std::vector<CTriangle> trianglesTemp = iter->getTriangles();
-                for (const CTriangle& triangleTemp : trianglesTemp) {
-                    bool flag = true;
-                    for (auto jter = triangles.begin(); jter != triangles.end(); jter++)
-                        if (triangleTemp.equal(*jter)) {
-                            flag = false;
-                            triangles.erase(jter);
-                            break;
-                        }
-
-                    if (flag)
-                        triangles.push_back(triangleTemp);
+            if (iter->contain(m_points, m_points[i].m_position)) {
+                std::vector<std::tuple<int, int, int>> trianglesTemp = iter->getTriangles();
+                for (const std::tuple<int, int, int>& triangleTemp : trianglesTemp) {
+                    auto jter = triangles.find(triangleTemp);
+                    if (jter != triangles.end())
+                        triangles.erase(jter);
+                    else
+                        triangles.insert(triangleTemp);
                 }
 
                 iter = tetrahedrons.erase(iter);
@@ -459,10 +454,8 @@ CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
             else
                 iter++;
 
-        for (const CTriangle& triangle : triangles) {
-            std::vector<Eigen::Vector3f> points = triangle.getPoints();
-            tetrahedrons.push_back(CTetrahedron(point.m_position, points[0], points[1], points[2]));
-        }
+        for (const std::tuple<int, int, int>& triangle : triangles)
+            tetrahedrons.push_back(CTetrahedron(i, std::get<0>(triangle), std::get<1>(triangle), std::get<2>(triangle)));
     }
 
     return nullptr;
