@@ -5,15 +5,19 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <list>
 #include <queue>
 #include <set>
 #include <map>
 
+#include <Eigen/Dense>
 #include <ANN/ANN.h>
 #include <glad/glad.h>
 
 #include "CPoint.h"
 #include "CMesh.h"
+#include "CTriangle.h"
+#include "CTetrahedron.h"
 #include "CSimplifyParameter.h"
 #include "CResampleParameter.h"
 #include "CSmoothParameter.h"

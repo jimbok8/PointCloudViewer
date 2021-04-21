@@ -410,7 +410,61 @@ CPointSet* CPointSet::smooth(const CSmoothParameter& parameter) const {
 }
 
 CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
-    // TODO
+    float minX, maxX, minY, maxY, minZ, maxZ;
+    minX = minY = minZ = FLT_MAX;
+    maxX = maxY = maxZ = -FLT_MAX;
+    for (const CPoint& point : m_points) {
+        minX = std::min(minX, point.m_position(0));
+        maxX = std::max(maxX, point.m_position(0));
+        minY = std::min(minY, point.m_position(1));
+        maxY = std::max(maxY, point.m_position(1));
+        minZ = std::min(minZ, point.m_position(2));
+        maxZ = std::max(maxZ, point.m_position(2));
+    }
+
+    float lowerX = minX - 1.0f;
+    float upperX = maxX + 1.0f;
+    float lowerY = minY - 1.0f;
+    float upperY = maxY + 1.0f;
+    float lowerZ = minZ - 1.0f;
+    float upperZ = maxZ + 1.0;
+
+    Eigen::Vector3f p0(lowerX, lowerY, lowerZ);
+    Eigen::Vector3f p1(lowerX + (upperX - lowerX) * 3.0f, lowerY, lowerZ);
+    Eigen::Vector3f p2(lowerX, lowerY + (upperY - lowerY) * 3.0f, lowerZ);
+    Eigen::Vector3f p3(lowerX, lowerY, lowerZ + (upperZ - lowerZ) * 3.0f);
+
+    std::list<CTetrahedron> tetrahedrons;
+    tetrahedrons.push_back(CTetrahedron(p0, p1, p2, p3));
+    for (const CPoint& point : m_points) {
+        std::list<CTriangle> triangles;
+        for (auto iter = tetrahedrons.begin(); iter != tetrahedrons.end(); )
+            if (iter->contain(point.m_position)) {
+                std::vector<CTriangle> trianglesTemp = iter->getTriangles();
+                for (const CTriangle& triangleTemp : trianglesTemp) {
+                    bool flag = true;
+                    for (auto jter = triangles.begin(); jter != triangles.end(); jter++)
+                        if (triangleTemp.equal(*jter)) {
+                            flag = false;
+                            triangles.erase(jter);
+                            break;
+                        }
+
+                    if (flag)
+                        triangles.push_back(triangleTemp);
+                }
+
+                iter = tetrahedrons.erase(iter);
+            }
+            else
+                iter++;
+
+        for (const CTriangle& triangle : triangles) {
+            std::vector<Eigen::Vector3f> points = triangle.getPoints();
+            tetrahedrons.push_back(CTetrahedron(point.m_position, points[0], points[1], points[2]));
+        }
+    }
+
     return nullptr;
 }
 
