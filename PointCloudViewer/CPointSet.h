@@ -16,11 +16,11 @@
 
 #include "CPoint.h"
 #include "CMesh.h"
-#include "CTriangle.h"
 #include "CTetrahedron.h"
 #include "CSimplifyParameter.h"
 #include "CResampleParameter.h"
 #include "CSmoothParameter.h"
+#include "CReconstructParameter.h"
 
 class CPointSet {
 private:
@@ -42,7 +42,7 @@ public:
     CPointSet* simplify(const CSimplifyParameter& parameter) const;
     CPointSet* resample(const CResampleParameter& parameter) const;
     CPointSet* smooth(const CSmoothParameter& parameter) const;
-    CMesh* reconstruct(const double maximumFacetLength) const;
+    CMesh* reconstruct(const CReconstructParameter& parameter) const;
     void render() const;
 };
 

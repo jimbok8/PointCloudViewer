@@ -409,10 +409,11 @@ CPointSet* CPointSet::smooth(const CSmoothParameter& parameter) const {
     return new CPointSet(points);
 }
 
-CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
+CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
+    std::vector<Eigen::Vector3f> points;
     for (const CPoint& point : m_points) {
         minX = std::min(minX, point.m_position(0));
         maxX = std::max(maxX, point.m_position(0));
@@ -420,6 +421,7 @@ CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
         maxY = std::max(maxY, point.m_position(1));
         minZ = std::min(minZ, point.m_position(2));
         maxZ = std::max(maxZ, point.m_position(2));
+        points.push_back(point.m_position);
     }
 
     float lowerX = minX - 1.0f;
@@ -427,19 +429,19 @@ CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
     float lowerY = minY - 1.0f;
     float upperY = maxY + 1.0f;
     float lowerZ = minZ - 1.0f;
-    float upperZ = maxZ + 1.0;
+    float upperZ = maxZ + 1.0f;
 
-    Eigen::Vector3f p0(lowerX, lowerY, lowerZ);
-    Eigen::Vector3f p1(lowerX + (upperX - lowerX) * 3.0f, lowerY, lowerZ);
-    Eigen::Vector3f p2(lowerX, lowerY + (upperY - lowerY) * 3.0f, lowerZ);
-    Eigen::Vector3f p3(lowerX, lowerY, lowerZ + (upperZ - lowerZ) * 3.0f);
+    points.push_back(Eigen::Vector3f(lowerX, lowerY, lowerZ));
+    points.push_back(Eigen::Vector3f(lowerX + (upperX - lowerX) * 3.0f, lowerY, lowerZ));
+    points.push_back(Eigen::Vector3f(lowerX, lowerY + (upperY - lowerY) * 3.0f, lowerZ));
+    points.push_back(Eigen::Vector3f(lowerX, lowerY, lowerZ + (upperZ - lowerZ) * 3.0f));
 
     std::list<CTetrahedron> tetrahedrons;
-    tetrahedrons.push_back(CTetrahedron(p0, p1, p2, p3));
-    for (int i = 0; i < m_points.size(); i++) {
+    tetrahedrons.push_back(CTetrahedron(points, points.size() - 4, points.size() - 3, points.size() - 2, points.size() - 1));
+    for (int i = 0; i < points.size() - 4; i++) {
         std::set<std::tuple<int, int, int>> triangles;
         for (auto iter = tetrahedrons.begin(); iter != tetrahedrons.end(); )
-            if (iter->contain(m_points, m_points[i].m_position)) {
+            if (iter->contain(points[i])) {
                 std::vector<std::tuple<int, int, int>> trianglesTemp = iter->getTriangles();
                 for (const std::tuple<int, int, int>& triangleTemp : trianglesTemp) {
                     auto jter = triangles.find(triangleTemp);
@@ -455,10 +457,28 @@ CMesh* CPointSet::reconstruct(const double maximumFacetLength) const {
                 iter++;
 
         for (const std::tuple<int, int, int>& triangle : triangles)
-            tetrahedrons.push_back(CTetrahedron(i, std::get<0>(triangle), std::get<1>(triangle), std::get<2>(triangle)));
+            tetrahedrons.push_back(CTetrahedron(points, i, std::get<0>(triangle), std::get<1>(triangle), std::get<2>(triangle)));
+    }
+    for (auto iter = tetrahedrons.begin(); iter != tetrahedrons.end(); )
+        if (iter->boundary(m_points.size()))
+            iter = tetrahedrons.erase(iter);
+        else
+            iter++;
+
+    std::vector<unsigned int> indices;
+    for (const CTetrahedron& tetrahedron : tetrahedrons) {
+        std::vector<std::tuple<int, int, int>> triangles = tetrahedron.getTriangles();
+        for (const std::tuple<int, int, int>& triangle : triangles) {
+            indices.push_back(std::get<0>(triangle));
+            indices.push_back(std::get<1>(triangle));
+            indices.push_back(std::get<1>(triangle));
+            indices.push_back(std::get<2>(triangle));
+            indices.push_back(std::get<2>(triangle));
+            indices.push_back(std::get<0>(triangle));
+        }
     }
 
-    return nullptr;
+    return new CMesh(m_points, indices);
 }
 
 void CPointSet::render() const {

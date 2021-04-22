@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CReconstructParameter.cpp" />
     <ClCompile Include="CSmoothParameter.cpp" />
     <ClCompile Include="CTetrahedron.cpp" />
     <ClCompile Include="main.cpp" />
@@ -160,6 +161,7 @@
     <ClInclude Include="CMesh.h" />
     <ClInclude Include="CPoint.h" />
     <ClInclude Include="CPointSet.h" />
+    <ClInclude Include="CReconstructParameter.h" />
     <ClInclude Include="CShader.h" />
     <ClInclude Include="CResampleParameter.h" />
     <ClInclude Include="CSimplifyParameter.h" />

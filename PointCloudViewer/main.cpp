@@ -20,6 +20,7 @@
 #include "CSimplifyParameter.h"
 #include "CResampleParameter.h"
 #include "CSmoothParameter.h"
+#include "CReconstructParameter.h"
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
@@ -150,12 +151,13 @@ int main(int argc, char** argv) {
     std::vector<CPointSet*> simplifies(numCluster, nullptr);
     std::vector<CPointSet*> resamples(numCluster, nullptr);
     std::vector<CPointSet*> smoothes(numCluster, nullptr);
-    //std::vector<CMesh*> reconstructs(numCluster, nullptr);
+    std::vector<CMesh*> reconstructs(numCluster, nullptr);
 
     int display = 0, color = 0, cluster = 0;
     CSimplifyParameter simplifyParameter(0.3f);
     CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 10000);
     CSmoothParameter smoothParameter(64, 30.0f);
+    CReconstructParameter reconstructParameter;
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -209,11 +211,10 @@ int main(int argc, char** argv) {
             ImGui::TreePop();
         }
 
-        //ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        //if (ImGui::TreeNodeEx("Reconstructing options", true)) {
-        //    ImGui::InputFloat("maximumFacetLength", &maximumFacetLength);
-        //    ImGui::TreePop();
-        //}
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Reconstructing options", true)) {
+            ImGui::TreePop();
+        }
 
         if (ImGui::Button("Simplify"))
             simplifies[cluster] = origins[cluster]->simplify(simplifyParameter);
@@ -221,8 +222,8 @@ int main(int argc, char** argv) {
             resamples[cluster] = simplifies[cluster]->resample(resampleParameter);
         if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
             smoothes[cluster] = resamples[cluster]->smooth(smoothParameter);
-        /*if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
-            reconstructs[cluster] = smoothes[cluster]->reconstruct(maximumFacetLength);*/
+        if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
+            reconstructs[cluster] = smoothes[cluster]->reconstruct(reconstructParameter);
 
         Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         Eigen::Matrix4f modelMat, viewMat, projectionMat;
@@ -239,9 +240,9 @@ int main(int argc, char** argv) {
             normalShader.setVector3D("lightDirection", lightDirection);
             normalShader.setVector3D("cameraPosition", cameraPosition);
             for (int i = 0; i < numCluster; i++)
-                /*if (display == 4 && reconstructs[i] != nullptr)
+                if (display == 4 && reconstructs[i] != nullptr)
                     reconstructs[i]->render();
-                else */if (display == 3 && smoothes[i] != nullptr)
+                else if (display == 3 && smoothes[i] != nullptr)
                     smoothes[i]->render();
                 else if (display == 2 && resamples[i] != nullptr)
                     resamples[i]->render();
@@ -260,9 +261,9 @@ int main(int argc, char** argv) {
             clusterShader.setVector3D("cameraPosition", cameraPosition);
             for (int i = 0; i < numCluster; i++) {
                 clusterShader.setVector3D("color", COLORS[i % COLOR_SIZE]);
-                /*if (display == 4 && reconstructs[i] != nullptr)
+                if (display == 4 && reconstructs[i] != nullptr)
                     reconstructs[i]->render();
-                else */if (display == 3 && smoothes[i] != nullptr)
+                else if (display == 3 && smoothes[i] != nullptr)
                     smoothes[i]->render();
                 else if (display == 2 && resamples[i] != nullptr)
                     resamples[i]->render();

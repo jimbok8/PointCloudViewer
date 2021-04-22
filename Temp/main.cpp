@@ -11,7 +11,7 @@ static void read(const std::string& path, std::vector<Eigen::Vector3f>& points) 
     std::ifstream fin(path);
     float x, y, z;
     while (fin >> x >> y >> z)
-        points.emplace_back(x, y, z);
+        points.push_back(Eigen::Vector3f(x, y, z));
 }
 
 int main() {
