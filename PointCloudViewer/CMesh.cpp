@@ -47,6 +47,6 @@ void CMesh::calculateNormals() {
 
 void CMesh::render() const {
     glBindVertexArray(m_vao);
-    glDrawElements(GL_LINES, m_indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
