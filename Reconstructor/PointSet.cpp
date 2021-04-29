@@ -214,7 +214,7 @@ Mesh PointSet::reconstruct(double maximumFacetLength) {
 
     std::vector<Point> points = toPoint(this->vertices);
     CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(points.begin(), points.end());
-    reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Jet_smoother<Kernel>());
+    reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Weighted_PCA_smoother<Kernel>());
     reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumFacetLength));
 
     std::vector<Vertex> vertices = this->vertices;

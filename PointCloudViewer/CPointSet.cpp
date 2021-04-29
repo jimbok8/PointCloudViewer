@@ -49,6 +49,28 @@ std::vector<std::vector<int>> CPointSet::calculateKNeighbors(int k) const {
     return ans;
 }
 
+std::vector<std::vector<int>> CPointSet::calculateRadiusNeighbors(const float radius) const {
+    float radius2 = radius * radius;
+    std::vector<std::vector<int>> ans;
+    for (int i = 0; i < m_points.size(); i++) {
+        ans.push_back(std::vector<int>());
+
+        int k = m_tree->annkFRSearch(m_pointArray[i], radius2, 0);
+        ANNidxArray indices = new ANNidx[k];
+        ANNdistArray distances = new ANNdist[k];
+        m_tree->annkFRSearch(m_pointArray[i], radius2, k, indices, distances);
+
+        for (int j = 0; j < k; j++)
+            if (indices[j] != i)
+                ans[i].push_back(indices[j]);
+
+        delete[] indices;
+        delete[] distances;
+    }
+
+    return ans;
+}
+
 void CPointSet::calculateNormals(const int k) {
     std::vector<std::vector<int>> neighbors = calculateKNeighbors(k);
     std::vector<std::vector<std::pair<int, float>>> graph(m_points.size());
@@ -456,18 +478,51 @@ void CPointSet::addEdge(std::map<std::pair<int, int>, Eigen::Vector3f>& edges, s
 }
 
 CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
+    std::vector<Eigen::Vector3f> points;
+    for (const CPoint& point : m_points)
+        points.push_back(point.m_position);
+
+    std::vector<std::vector<int>> neighbors = calculateKNeighbors(12);
+    float radius = 0.0f;
+    for (int i = 0; i < points.size(); i++)
+        radius += (points[i] - points[*neighbors[i].rbegin()]).norm();
+    radius /= points.size();
+    neighbors = calculateRadiusNeighbors(radius);
+
+    for (int i = 0; i < points.size(); i++)
+        if (neighbors[i].size() >= 4) {
+            float weightSum = 0.0f;
+            std::vector<float> weights;
+            Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
+            for (int j = 0; j < neighbors[i].size(); j++) {
+                weights.push_back(1.0f / (points[i] - points[neighbors[i][j]]).norm());
+                weightSum += weights[j];
+                avg += weights[j] * points[neighbors[i][j]];
+            }
+            avg /= weightSum;
+
+            Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
+            for (int j = 0; j < neighbors[i].size(); j++) {
+                Eigen::Vector3f x = points[neighbors[i][j]] - avg;
+                cov += x * x.transpose();
+            }
+            cov /= (float)neighbors[i].size();
+
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
+            solver.compute(cov);
+            Eigen::Vector3f normal = solver.eigenvectors().col(0);
+        }
+
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
-    std::vector<Eigen::Vector3f> points;
-    for (const CPoint& point : m_points) {
-        minX = std::min(minX, point.m_position(0));
-        maxX = std::max(maxX, point.m_position(0));
-        minY = std::min(minY, point.m_position(1));
-        maxY = std::max(maxY, point.m_position(1));
-        minZ = std::min(minZ, point.m_position(2));
-        maxZ = std::max(maxZ, point.m_position(2));
-        points.push_back(point.m_position);
+    for (const Eigen::Vector3f& point : points) {
+        minX = std::min(minX, point(0));
+        maxX = std::max(maxX, point(0));
+        minY = std::min(minY, point(1));
+        maxY = std::max(maxY, point(1));
+        minZ = std::min(minZ, point(2));
+        maxZ = std::max(maxZ, point(2));
     }
 
     float lowerX = minX - 1.0f;
@@ -505,24 +560,6 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
         for (const std::tuple<int, int, int>& triangle : triangles)
             tetrahedrons.push_back(CTetrahedron(points, i, std::get<0>(triangle), std::get<1>(triangle), std::get<2>(triangle)));
     }
-    /*for (auto iter = tetrahedrons.begin(); iter != tetrahedrons.end(); )
-        if (iter->boundary(m_points.size()))
-            iter = tetrahedrons.erase(iter);
-        else
-            iter++;*/
-
-    /*std::vector<unsigned int> indices;
-    for (const CTetrahedron& tetrahedron : tetrahedrons) {
-        std::vector<std::tuple<int, int, int>> triangles = tetrahedron.getTriangles();
-        for (const std::tuple<int, int, int>& triangle : triangles) {
-            indices.push_back(std::get<0>(triangle));
-            indices.push_back(std::get<1>(triangle));
-            indices.push_back(std::get<1>(triangle));
-            indices.push_back(std::get<2>(triangle));
-            indices.push_back(std::get<2>(triangle));
-            indices.push_back(std::get<0>(triangle));
-        }
-    }*/
 
     std::set<std::tuple<int, int, int>> triangles;
     for (const CTetrahedron& tetrahedron : tetrahedrons)

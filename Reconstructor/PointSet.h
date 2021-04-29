@@ -19,6 +19,7 @@
 #include <CGAL/Advancing_front_surface_reconstruction.h>
 #include <CGAL/Scale_space_surface_reconstruction_3.h>
 #include <CGAL/Scale_space_reconstruction_3/Jet_smoother.h>
+#include <CGAL/Scale_space_reconstruction_3/Weighted_PCA_smoother.h>
 #include <CGAL/Scale_space_reconstruction_3/Advancing_front_mesher.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/poisson_surface_reconstruction.h>

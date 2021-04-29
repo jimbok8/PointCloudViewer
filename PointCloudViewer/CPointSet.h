@@ -31,6 +31,7 @@ private:
     ANNkd_tree* m_tree;
     unsigned int m_vao;
     std::vector<std::vector<int>> calculateKNeighbors(int k) const;
+    std::vector<std::vector<int>> calculateRadiusNeighbors(const float radius) const;
     void calculateNormals(const int k = 50);
     float averageSpacing(const int k = 6) const;
     std::vector<std::vector<int>> calculateRadiusNeighbors(const std::vector<CPoint>& points, const float radius) const;
