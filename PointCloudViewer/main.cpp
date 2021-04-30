@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     CSimplifyParameter simplifyParameter(0.3f);
     CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 10000);
     CSmoothParameter smoothParameter(64, 30.0f);
-    CReconstructParameter reconstructParameter;
+    CReconstructParameter reconstructParameter(4, 1.0f);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -213,6 +213,8 @@ int main(int argc, char** argv) {
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Reconstructing options", true)) {
+            ImGui::InputInt("numberIteration", &reconstructParameter.m_iterationNumber);
+            ImGui::InputFloat("maximumRadius", &reconstructParameter.m_maximumRadius);
             ImGui::TreePop();
         }
 

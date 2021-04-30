@@ -5,3 +5,5 @@ CResampleParameter::CResampleParameter(const float sharpnessAngle, const float e
     m_edgeSensitivity(edgeSensitivity),
     m_neighborRadius(neighborRadius),
     m_size(size) {}
+
+CResampleParameter::~CResampleParameter() {}

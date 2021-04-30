@@ -5,6 +5,7 @@ class CSimplifyParameter {
 public:
     float m_epsilon;
     CSimplifyParameter(const float epsilon);
+    ~CSimplifyParameter();
 };
 
 #endif

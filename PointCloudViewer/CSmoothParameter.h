@@ -6,6 +6,7 @@ public:
     int m_k;
     float m_sharpnessAngle;
     CSmoothParameter(const int k, const float sharpnessAngle);
+    ~CSmoothParameter();
 };
 
 #endif

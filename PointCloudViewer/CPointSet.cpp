@@ -451,14 +451,14 @@ Eigen::Vector3f CPointSet::calculateNormal(const int p0, const int p1, const int
     return (v1 - v0).cross(v2 - v1).normalized();
 }
 
-CCandidate CPointSet::calculateCandidate(const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const {
+CCandidate CPointSet::calculateCandidate(const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal, const float maximumRadius) const {
     float minRadius = FLT_MAX;
     CCandidate ans;
     for (const std::pair<int, int>& candidate : candidates) {
         int opposite = candidate.first;
         int index = candidate.second;
         float radius = radii[index];
-        if (!flag[index] && radius < 1.0f) {
+        if (!flag[index] && radius < maximumRadius) {
             Eigen::Vector3f normalTemp = calculateNormal(source, opposite, target);
             float beta = std::acos(normal.dot(normalTemp));
             if (beta < ALPHA && radius < minRadius) {
@@ -470,14 +470,17 @@ CCandidate CPointSet::calculateCandidate(const std::vector<float>& radii, const 
     return ans;
 }
 
-void CPointSet::addEdge(std::map<std::pair<int, int>, Eigen::Vector3f>& edges, std::priority_queue<CCandidate>& heap, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const {
-    CCandidate candidate = calculateCandidate(radii, flag, candidates, source, target, normal);
+void CPointSet::addEdge(std::map<std::pair<int, int>, Eigen::Vector3f>& edges, std::priority_queue<CCandidate>& heap, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal, const float maximumRadius) const {
+    CCandidate candidate = calculateCandidate(radii, flag, candidates, source, target, normal, maximumRadius);
     edges[std::make_pair(source, target)] = normal;
     if (!candidate.empty())
         heap.push(candidate);
 }
 
 CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
+    int iterationNumber = parameter.m_iterationNumber;
+    float maximumRadius = parameter.m_maximumRadius;
+
     std::vector<Eigen::Vector3f> points;
     for (const CPoint& point : m_points)
         points.push_back(point.m_position);
@@ -489,29 +492,33 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     radius /= points.size();
     neighbors = calculateRadiusNeighbors(radius);
 
-    for (int i = 0; i < points.size(); i++)
-        if (neighbors[i].size() >= 4) {
-            float weightSum = 0.0f;
-            std::vector<float> weights;
-            Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
-            for (int j = 0; j < neighbors[i].size(); j++) {
-                weights.push_back(1.0f / (points[i] - points[neighbors[i][j]]).norm());
-                weightSum += weights[j];
-                avg += weights[j] * points[neighbors[i][j]];
-            }
-            avg /= weightSum;
+    for (int iter = 0; iter < iterationNumber; iter++) {
+        for (int i = 0; i < points.size(); i++)
+            if (neighbors[i].size() >= 4) {
+                float weightSum = 0.0f;
+                std::vector<float> weights;
+                Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
+                for (int j = 0; j < neighbors[i].size(); j++) {
+                    weights.push_back(1.0f / (points[i] - points[neighbors[i][j]]).norm());
+                    weightSum += weights[j];
+                    avg += weights[j] * points[neighbors[i][j]];
+                }
+                avg /= weightSum;
 
-            Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
-            for (int j = 0; j < neighbors[i].size(); j++) {
-                Eigen::Vector3f x = points[neighbors[i][j]] - avg;
-                cov += x * x.transpose();
-            }
-            cov /= (float)neighbors[i].size();
+                Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
+                for (int j = 0; j < neighbors[i].size(); j++) {
+                    Eigen::Vector3f x = points[neighbors[i][j]] - avg;
+                    cov += weights[j] * x * x.transpose();
+                }
+                cov /= weightSum;
 
-            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
-            solver.compute(cov);
-            Eigen::Vector3f normal = solver.eigenvectors().col(0);
-        }
+                Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
+                solver.compute(cov);
+                Eigen::Vector3f normal = solver.eigenvectors().col(0);
+
+                points[i] -= normal.dot(points[i] - avg) * normal;
+            }
+    }
 
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
@@ -602,9 +609,9 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     int p2 = std::get<2>(seedTriangle);
     Eigen::Vector3f normal = calculateNormal(p0, p1, p2);
     flag[seedIndex] = true;
-    addEdge(edges, heap, radii, flag, candidates[std::make_pair(p0, p1)], p0, p1, normal);
-    addEdge(edges, heap, radii, flag, candidates[std::make_pair(p1, p2)], p1, p2, normal);
-    addEdge(edges, heap, radii, flag, candidates[std::make_pair(p2, p0)], p2, p0, normal);
+    addEdge(edges, heap, radii, flag, candidates[std::make_pair(p0, p1)], p0, p1, normal, maximumRadius);
+    addEdge(edges, heap, radii, flag, candidates[std::make_pair(p1, p2)], p1, p2, normal, maximumRadius);
+    addEdge(edges, heap, radii, flag, candidates[std::make_pair(p2, p0)], p2, p0, normal, maximumRadius);
     indices.push_back(p0);
     indices.push_back(p1);
     indices.push_back(p2);
@@ -618,7 +625,7 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
         Eigen::Vector3f normal = now.getNormal();
         std::pair<int, int> edge = std::make_pair(source, target);
         if (flag[index]) {
-            CCandidate candidate = calculateCandidate(radii, flag, candidates[std::make_pair(source, target)], source, target, edges[edge]);
+            CCandidate candidate = calculateCandidate(radii, flag, candidates[std::make_pair(source, target)], source, target, edges[edge], maximumRadius);
             if (!candidate.empty())
                 heap.push(candidate);
             continue;
@@ -626,8 +633,8 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
         flag[index] = true;
 
         edges.erase(edge);
-        addEdge(edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal);
-        addEdge(edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal);
+        addEdge(edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal, maximumRadius);
+        addEdge(edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal, maximumRadius);
 
         indices.push_back(source);
         indices.push_back(opposite);
