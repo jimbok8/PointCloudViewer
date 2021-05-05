@@ -20,6 +20,7 @@ private:
 public:
     CMesh(const std::vector<CPoint>& points, const std::vector<unsigned int>& indices);
     ~CMesh();
+    std::vector<unsigned int> getIndices() const;
     void render() const;
 };
 

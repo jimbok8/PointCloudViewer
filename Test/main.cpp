@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <set>
 #include <iostream>
 
 #include <ANN/ANN.h>
@@ -8,30 +9,42 @@
 #include <GLFW/glfw3.h>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Surface_mesh.h>
 #include <CGAL/pca_estimate_normals.h>
 #include <CGAL/mst_orient_normals.h>
 #include <CGAL/grid_simplify_point_set.h>
 #include <CGAL/edge_aware_upsample_point_set.h>
 #include <CGAL/bilateral_smooth_point_set.h>
+#include <CGAL/Scale_space_surface_reconstruction_3.h>
+#include <CGAL/Scale_space_reconstruction_3/Weighted_PCA_smoother.h>
+#include <CGAL/Scale_space_reconstruction_3/Advancing_front_mesher.h>
 
 #include "CPointSet.h"
+#include "CMesh.h"
 #include "CSimplifyParameter.h"
 #include "CResampleParameter.h"
 #include "CSmoothParameter.h"
+#include "CReconstructParameter.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_3 Point;
 typedef Kernel::Vector_3 Vector;
 typedef std::pair<Point, Vector> PointNormal;
+typedef CGAL::Surface_mesh<Point> SurfaceMesh;
+typedef SurfaceMesh::Vertex_index VertexIndex;
+typedef SurfaceMesh::Face_index FaceIndex;
+typedef SurfaceMesh::Halfedge_index HalfedgeIndex;
 
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 
 static std::vector<PointNormal> points;
 static std::vector<CPoint> cpoints;
+static std::vector<unsigned int> indices, cindices;
 static CSimplifyParameter simplifyParameter(0.3f);
 static CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 3000);
 static CSmoothParameter smoothParameter(64, 30.0f);
+static CReconstructParameter reconstructParameter(4, 1.0f);
 
 static bool comparePointSet(const float epsilon) {
     if (points.size() != cpoints.size()) {
@@ -71,6 +84,34 @@ static bool comparePointSet(const float epsilon) {
 
     std::cout << avgPosition << ' ' << avgNormal << std::endl;
     return avgPosition < epsilon&& avgNormal < epsilon;
+}
+
+static bool compareMesh() {
+    std::set<std::tuple<int, int, int>> triangles;
+    for (int i = 0; i < indices.size(); i += 3) {
+        std::vector<int> points;
+        points.push_back(indices[i]);
+        points.push_back(indices[i + 1]);
+        points.push_back(indices[i + 2]);
+        std::sort(points.begin(), points.end());
+        triangles.insert(std::make_tuple(points[0], points[1], points[2]));
+    }
+
+    int num = 0;
+    for (int i = 0; i < cindices.size(); i++) {
+        std::vector<int> points;
+        points.push_back(cindices[i]);
+        points.push_back(cindices[i + 1]);
+        points.push_back(cindices[i + 2]);
+        std::sort(points.begin(), points.end());
+
+        if (triangles.find(std::make_tuple(points[0], points[1], points[2])) != triangles.end())
+            num++;
+    }
+
+    float rate = (float)num / ((float)std::max(indices.size(), cindices.size()) / 3.0f);
+    std::cout << rate << std::endl;
+    return rate > 0.6f;
 }
 
 static void refresh() {
@@ -132,6 +173,23 @@ static void smooth(const CSmoothParameter& parameter) {
     calculateNormals();
 }
 
+static void reconstruct(const CReconstructParameter& parameter) {
+    int iterationNumber = parameter.m_iterationNumber;
+    float maximumRadius = parameter.m_maximumRadius;
+
+    std::vector<Point> pointsTemp;
+    for (const PointNormal& point : points)
+        pointsTemp.push_back(point.first);
+
+    CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(pointsTemp.begin(), pointsTemp.end());
+    reconstruct.increase_scale(iterationNumber, CGAL::Scale_space_reconstruction_3::Weighted_PCA_smoother<Kernel>());
+    reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumRadius));
+
+    for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
+        for (unsigned int index : *iter)
+            indices.push_back(index);
+}
+
 static bool testConstructor() {
     refresh();
 
@@ -166,6 +224,15 @@ static bool testSmooth() {
     cpoints = (new CPointSet(cpoints))->smooth(smoothParameter)->getPoints();
 
     return comparePointSet(1e-12);
+}
+
+static bool testReconstruct() {
+    refresh();
+
+    reconstruct(reconstructParameter);
+    cindices = (new CPointSet(cpoints))->reconstruct(reconstructParameter)->getIndices();
+
+    return compareMesh();
 }
 
 int main() {
@@ -208,6 +275,8 @@ int main() {
         std::cout << "Resample test failed." << std::endl;
     else if (!testSmooth())
         std::cout << "Smooth test failed." << std::endl;
+    else if (!testReconstruct())
+        std::cout << "Reconstruct test failed." << std::endl;
     else
         std::cout << "All tests passed." << std::endl;
 

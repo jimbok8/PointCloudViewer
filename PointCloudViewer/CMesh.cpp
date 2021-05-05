@@ -3,7 +3,7 @@
 CMesh::CMesh(const std::vector<CPoint>& points, const std::vector<unsigned int>& indices) :
     m_points(points),
     m_indices(indices) {
-    //calculateNormals();
+    calculateNormals();
 
     unsigned vbo, ebo;
     glGenVertexArrays(1, &m_vao);
@@ -43,6 +43,10 @@ void CMesh::calculateNormals() {
     for (int i = 0; i < m_points.size(); i++)
         if (!normals[i].empty())
             m_points[i].m_normal = (std::accumulate(normals[i].begin(), normals[i].end(), Eigen::Vector3f(0.0f, 0.0f, 0.0f)) / (float)normals[i].size()).normalized();
+}
+
+std::vector<unsigned int> CMesh::getIndices() const {
+    return m_indices;
 }
 
 void CMesh::render() const {
