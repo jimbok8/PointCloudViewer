@@ -182,12 +182,20 @@ static void reconstruct(const CReconstructParameter& parameter) {
         pointsTemp.push_back(point.first);
 
     CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(pointsTemp.begin(), pointsTemp.end());
-    reconstruct.increase_scale(iterationNumber, CGAL::Scale_space_reconstruction_3::Weighted_PCA_smoother<Kernel>());
+    reconstruct.increase_scale(4, CGAL::Scale_space_reconstruction_3::Weighted_PCA_smoother<Kernel>());
     reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumRadius));
 
     for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
         for (unsigned int index : *iter)
             indices.push_back(index);
+
+    /*CGAL::Scale_space_surface_reconstruction_3<Kernel> reconstruct(pointsTemp.begin(), pointsTemp.end());
+    reconstruct.increase_scale(iterationNumber, CGAL::Scale_space_reconstruction_3::Weighted_PCA_smoother<Kernel>());
+    reconstruct.reconstruct_surface(CGAL::Scale_space_reconstruction_3::Advancing_front_mesher<Kernel>(maximumRadius));
+
+    for (auto iter = reconstruct.facets_begin(); iter != reconstruct.facets_end(); iter++)
+        for (unsigned int index : *iter)
+            indices.push_back(index);*/
 }
 
 static bool testConstructor() {
