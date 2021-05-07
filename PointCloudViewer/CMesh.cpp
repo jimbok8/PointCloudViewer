@@ -3,7 +3,7 @@
 CMesh::CMesh(const std::vector<CPoint>& points, const std::vector<unsigned int>& indices) :
     m_points(points),
     m_indices(indices) {
-    calculateNormals();
+    //calculateNormals();
 
     unsigned vbo, ebo;
     glGenVertexArrays(1, &m_vao);
@@ -51,6 +51,6 @@ std::vector<unsigned int> CMesh::getIndices() const {
 
 void CMesh::render() const {
     glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_LINES, m_indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

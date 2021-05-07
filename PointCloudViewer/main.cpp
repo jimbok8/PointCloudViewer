@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     std::vector<CPoint> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/pool.dat");
+    std::ifstream fin("../data/temp.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Reconstructing options", true)) {
             ImGui::InputInt("numberIteration", &reconstructParameter.m_iterationNumber);
-            ImGui::InputFloat("maximumRadius", &reconstructParameter.m_maximumRadius);
+            ImGui::InputFloat("maximumFacetLength", &reconstructParameter.m_maximumFacetLength);
             ImGui::TreePop();
         }
 

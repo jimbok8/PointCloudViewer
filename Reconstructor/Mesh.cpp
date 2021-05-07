@@ -26,7 +26,7 @@ Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) {
         this->indices.push_back(mapping[index]);
     std::cout << vertices.size() - this->vertices.size() << " duplicate point(s) reduced" << std::endl;
 
-    calculateNormals();
+    //calculateNormals();
 
     unsigned vbo, ebo;
     glGenVertexArrays(1, &vao);
@@ -71,6 +71,6 @@ void Mesh::calculateNormals() {
 
 void Mesh::render() {
     glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

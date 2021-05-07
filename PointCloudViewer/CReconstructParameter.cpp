@@ -1,7 +1,7 @@
 #include "CReconstructParameter.h"
 
-CReconstructParameter::CReconstructParameter(const int iterationNumber, const float maximumRadius) :
+CReconstructParameter::CReconstructParameter(const int iterationNumber, const float maximumFacetLength) :
     m_iterationNumber(iterationNumber),
-    m_maximumRadius(maximumRadius) {}
+    m_maximumFacetLength(maximumFacetLength) {}
 
 CReconstructParameter::~CReconstructParameter() {}

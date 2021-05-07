@@ -48,6 +48,12 @@
     <ClCompile Include="CCandidate.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CMeshBoundary.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CBoundary.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TransformHelper.h">
@@ -81,6 +87,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CCandidate.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CMeshBoundary.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CBoundary.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

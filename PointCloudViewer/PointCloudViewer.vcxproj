@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -146,7 +146,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CBoundary.cpp" />
     <ClCompile Include="CCandidate.cpp" />
+    <ClCompile Include="CMeshBoundary.cpp" />
     <ClCompile Include="CReconstructParameter.cpp" />
     <ClCompile Include="CSmoothParameter.cpp" />
     <ClCompile Include="CTetrahedron.cpp" />
@@ -159,8 +161,10 @@
     <ClCompile Include="CSimplifyParameter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CBoundary.h" />
     <ClInclude Include="CCandidate.h" />
     <ClInclude Include="CMesh.h" />
+    <ClInclude Include="CMeshBoundary.h" />
     <ClInclude Include="CPoint.h" />
     <ClInclude Include="CPointSet.h" />
     <ClInclude Include="CReconstructParameter.h" />
