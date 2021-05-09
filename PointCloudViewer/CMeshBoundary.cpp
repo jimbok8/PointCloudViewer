@@ -10,12 +10,16 @@ CMeshBoundary::CMeshBoundary(const int p0, const int p1, const int p2) {
 
 CMeshBoundary::~CMeshBoundary() {}
 
-bool CMeshBoundary::contain(const int p) const {
-    for (const CBoundary& boundary : m_boundaries)
-        if (boundary.contain(p))
-            return true;
+std::vector<CBoundary> CMeshBoundary::getBoundaries() const {
+    return m_boundaries;
+}
 
-    return false;
+int CMeshBoundary::contain(const int p) const {
+    for (int i = 0; i < m_boundaries.size(); i++)
+        if (m_boundaries[i].contain(p))
+            return i;
+
+    return -1;
 }
 
 void CMeshBoundary::neighbors(const int p, int& last, int& next) const {
@@ -46,8 +50,12 @@ void CMeshBoundary::erase(const int p) {
 
 void CMeshBoundary::split(const int p0, const int p1, const int p2, const int p3) {
     for (auto iter = m_boundaries.begin(); iter != m_boundaries.end(); iter++)
-        if (iter->contain(p0) && iter->contain(p1) && iter->contain(p2) && iter->contain(p3)) {
-            m_boundaries.push_back(iter->split(p0, p1, p2, p3));
+        if (iter->contain(p0)) {
+            CBoundary boundary = iter->split(p0, p1, p2, p3);
+            if (iter->size() < 3)
+                m_boundaries.erase(iter);
+            if (boundary.size() >= 3)
+                m_boundaries.push_back(boundary);
             return;
         }
 }

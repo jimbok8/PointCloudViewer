@@ -32,12 +32,5 @@ std::vector<std::tuple<int, int, int>> CTetrahedron::getTriangles() const {
 }
 
 bool CTetrahedron::contain(const Eigen::Vector3f& point) const {
-    return (point - m_center).squaredNorm() < m_radius2;
-}
-
-bool CTetrahedron::boundary(const int size) const {
-    for (const int index : m_indices)
-        if (index > size)
-            return true;
-    return false;
+    return (point - m_center).squaredNorm() <= m_radius2;
 }

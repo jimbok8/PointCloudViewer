@@ -2,7 +2,6 @@
 #define BOUNDARY_H
 
 #include <vector>
-#include <iostream>
 
 class CBoundary {
 private:
@@ -11,6 +10,7 @@ private:
 public:
     CBoundary(const std::vector<int>& indices);
     ~CBoundary();
+    std::vector<int> getIndices() const;
     int size() const;
     bool contain(const int p) const;
     void neighbors(const int p, int& last, int& next) const;

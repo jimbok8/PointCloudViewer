@@ -451,35 +451,30 @@ Eigen::Vector3f CPointSet::calculateNormal(const std::vector<Eigen::Vector3f>& p
     return (v1 - v0).cross(v2 - v1).normalized();
 }
 
-CCandidate CPointSet::calculateCandidate(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal, const float maximumFacetLength) const {
+CCandidate CPointSet::calculateCandidate(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const {
     float minRadius = FLT_MAX;
     CCandidate ans;
 
-    float a = (points[target] - points[source]).norm();
-    if (a <= maximumFacetLength)
-        for (const std::pair<int, int>& candidate : candidates) {
-            int opposite = candidate.first;
-            int index = candidate.second;
-            float radius = radii[index];
+    for (const std::pair<int, int>& candidate : candidates) {
+        int opposite = candidate.first;
+        int index = candidate.second;
+        float radius = radii[index];
 
-            float b = (points[opposite] - points[source]).norm();
-            float c = (points[opposite] - points[target]).norm();
-
-            if (!flag[index] && b <= maximumFacetLength && c <= maximumFacetLength) {
-                Eigen::Vector3f normalTemp = calculateNormal(points, source, opposite, target);
-                float beta = std::acos(normal.dot(normalTemp));
-                if (beta < ALPHA && radius < minRadius) {
-                    minRadius = radius;
-                    ans = CCandidate(source, target, opposite, index, normalTemp, beta, radius);
-                }
+        if (!flag[index]) {
+            Eigen::Vector3f normalTemp = calculateNormal(points, source, opposite, target);
+            float beta = std::acos(normal.dot(normalTemp));
+            if (beta < ALPHA && radius < minRadius) {
+                minRadius = radius;
+                ans = CCandidate(source, target, opposite, index, normalTemp, beta, radius);
             }
         }
+    }
 
     return ans;
 }
 
-void CPointSet::addEdge(const std::vector<Eigen::Vector3f>& points, std::map<std::pair<int, int>, Eigen::Vector3f>& edges, std::priority_queue<CCandidate>& heap, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal, const float maximumFacetLength) const {
-    CCandidate candidate = calculateCandidate(points, radii, flag, candidates, source, target, normal, maximumFacetLength);
+void CPointSet::addEdge(const std::vector<Eigen::Vector3f>& points, std::map<std::pair<int, int>, Eigen::Vector3f>& edges, std::priority_queue<CCandidate>& heap, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const {
+    CCandidate candidate = calculateCandidate(points, radii, flag, candidates, source, target, normal);
     edges[std::make_pair(source, target)] = normal;
     if (!candidate.empty())
         heap.push(candidate);
@@ -493,7 +488,7 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     for (const CPoint& point : m_points)
         points.push_back(point.m_position);
 
-   /*std::vector<std::vector<int>> neighbors = calculateKNeighbors(12);
+    std::vector<std::vector<int>> neighbors = calculateKNeighbors(12);
     float radius = 0.0f;
     for (int i = 0; i < points.size(); i++)
         radius += (points[i] - points[*neighbors[i].rbegin()]).norm();
@@ -526,7 +521,7 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
 
                 points[i] -= normal.dot(points[i] - avg) * normal;
             }
-    }*/
+    }
 
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
@@ -577,12 +572,21 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     }
 
     std::set<std::tuple<int, int, int>> triangles;
-    for (const CTetrahedron& tetrahedron : tetrahedrons)
-        if (!tetrahedron.boundary(m_points.size())) {
-            std::vector<std::tuple<int, int, int>> trianglesTemp = tetrahedron.getTriangles();
-            for (const std::tuple<int, int, int>& triangleTemp : trianglesTemp)
+    for (const CTetrahedron& tetrahedron : tetrahedrons) {
+        std::vector<std::tuple<int, int, int>> trianglesTemp = tetrahedron.getTriangles();
+        for (const std::tuple<int, int, int>& triangleTemp : trianglesTemp) {
+            int x = std::get<0>(triangleTemp);
+            int y = std::get<1>(triangleTemp);
+            int z = std::get<2>(triangleTemp);
+
+            float a = (points[x] - points[y]).norm();
+            float b = (points[y] - points[z]).norm();
+            float c = (points[z] - points[x]).norm();
+            
+            if (x < m_points.size() && y < m_points.size() && z < m_points.size() && a <= maximumFacetLength && b <= maximumFacetLength && c <= maximumFacetLength)
                 triangles.insert(triangleTemp);
         }
+    }
 
     float minRadius = FLT_MAX;
     int seedIndex;
@@ -611,6 +615,7 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     std::map<std::pair<int, int>, Eigen::Vector3f> edges;
     std::set<int> allPoints;
     std::priority_queue<CCandidate> heap;
+    std::vector<CCandidate> later;
     std::vector<bool> flag(triangles.size(), false);
     std::vector<unsigned int> indices;
     int p0 = std::get<0>(seedTriangle);
@@ -618,9 +623,9 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     int p2 = std::get<2>(seedTriangle);
     Eigen::Vector3f normal = calculateNormal(points, p0, p1, p2);
     flag[seedIndex] = true;
-    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p0, p1)], p0, p1, normal, maximumFacetLength);
-    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p1, p2)], p1, p2, normal, maximumFacetLength);
-    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p2, p0)], p2, p0, normal, maximumFacetLength);
+    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p0, p1)], p0, p1, normal);
+    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p1, p2)], p1, p2, normal);
+    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p2, p0)], p2, p0, normal);
     indices.push_back(p0);
     indices.push_back(p1);
     indices.push_back(p1);
@@ -642,137 +647,182 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
         Eigen::Vector3f normal = now.getNormal();
         std::pair<int, int> edge = std::make_pair(source, target);
         if (flag[index]) {
-            CCandidate candidate = calculateCandidate(points, radii, flag, candidates[std::make_pair(source, target)], source, target, edges[edge], maximumFacetLength);
+            CCandidate candidate = calculateCandidate(points, radii, flag, candidates[std::make_pair(source, target)], source, target, edges[edge]);
             if (!candidate.empty())
                 heap.push(candidate);
             continue;
         }
-        flag[index] = true;
 
-        if (allPoints.find(opposite) == allPoints.end()) {
-            allPoints.insert(opposite);
-            boundary.insert(source, target, opposite);
-
-            edges.erase(edge);
-            addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal, maximumFacetLength);
-            addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal, maximumFacetLength);
-
-            indices.push_back(source);
-            indices.push_back(opposite);
-            indices.push_back(opposite);
-            indices.push_back(target);
-            indices.push_back(target);
-            indices.push_back(source);
-        }
-        else if (boundary.contain(opposite)) {
-            int last, next;
-            boundary.neighbors(opposite, last, next);
-            if (last == target && next == source) {
-                boundary.erase(opposite);
+        int lastTemp, nextTemp;
+        boundary.neighbors(source, lastTemp, nextTemp);
+        if (boundary.contain(source) > -1 && boundary.contain(target) > -1 && nextTemp == target) {
+            if (allPoints.find(opposite) == allPoints.end()) {
+                allPoints.insert(opposite);
+                boundary.insert(source, target, opposite);
 
                 edges.erase(edge);
+                addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal);
+                addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal);
 
                 indices.push_back(source);
                 indices.push_back(opposite);
-                indices.push_back(opposite);
                 indices.push_back(target);
-                indices.push_back(target);
-                indices.push_back(source);
+
+                flag[index] = true;
+
+                for (const CCandidate& candidate : later)
+                    heap.push(candidate);
+                std::vector<CCandidate>().swap(later);
             }
-            else if (last == target) {
-                boundary.erase(opposite);
+            else if (boundary.contain(source) == boundary.contain(opposite)) {
+                int last, next;
+                boundary.neighbors(opposite, last, next);
+                if (last == target && next == source) {
+                    boundary.erase(opposite);
 
-                edges.erase(edge);
-                addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal, maximumFacetLength);
+                    edges.erase(edge);
 
-                indices.push_back(source);
-                indices.push_back(opposite);
-                indices.push_back(opposite);
-                indices.push_back(target);
-                indices.push_back(target);
-                indices.push_back(source);
-            }
-            else if (next == source) {
-                boundary.erase(opposite);
+                    indices.push_back(source);
+                    indices.push_back(opposite);
+                    indices.push_back(target);
 
-                edges.erase(edge);
-                addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal, maximumFacetLength);
+                    flag[index] = true;
 
-                indices.push_back(source);
-                indices.push_back(opposite);
-                indices.push_back(opposite);
-                indices.push_back(target);
-                indices.push_back(target);
-                indices.push_back(source);
-            }
-            else {
-                int index0 = -1, index1 = -1;
-                for (const std::pair<int, int>& pair : candidates[std::make_pair(source, opposite)])
-                    if (pair.first == next)
-                        index0 = pair.second;
-                for (const std::pair<int, int>& pair : candidates[std::make_pair(target, opposite)])
-                    if (pair.first == last)
-                        index1 = pair.second;
-
-                float radius0 = index0 > -1 ? radii[index0] : FLT_MAX;
-                float radius1 = index1 > -1 ? radii[index1] : FLT_MAX;
-                if (index0 > -1 && radius0 < radius1) {
-                    float a = (points[opposite] - points[next]).norm();
-                    float b = (points[source] - points[opposite]).norm();
-                    float c = (points[next] - points[source]).norm();
-                    if (a <= maximumFacetLength && b <= maximumFacetLength && c <= maximumFacetLength) {
-                        boundary.split(source, target, opposite, next);
-                        
-                        edges.erase(edge);
-                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal, maximumFacetLength);
-                        normal = calculateNormal(points, next, opposite, source);
-                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, next)], source, next, normal, maximumFacetLength);
-
-                        indices.push_back(source);
-                        indices.push_back(opposite);
-                        indices.push_back(opposite);
-                        indices.push_back(target);
-                        indices.push_back(target);
-                        indices.push_back(source);
-
-                        indices.push_back(next);
-                        indices.push_back(opposite);
-                        indices.push_back(opposite);
-                        indices.push_back(source);
-                        indices.push_back(source);
-                        indices.push_back(next);
-                    }
+                    for (const CCandidate& candidate : later)
+                        heap.push(candidate);
+                    std::vector<CCandidate>().swap(later);
                 }
-                else if (index1 > -1 && radius0 > radius1) {
-                    float a = (points[opposite] - points[target]).norm();
-                    float b = (points[last] - points[opposite]).norm();
-                    float c = (points[target] - points[last]).norm();
-                    if (a <= maximumFacetLength && b <= maximumFacetLength && c <= maximumFacetLength) {
+                else if (last == target) {
+                    boundary.erase(target);
+
+                    edges.erase(edge);
+                    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal);
+
+                    indices.push_back(source);
+                    indices.push_back(opposite);
+                    indices.push_back(target);
+
+                    flag[index] = true;
+
+                    for (const CCandidate& candidate : later)
+                        heap.push(candidate);
+                    std::vector<CCandidate>().swap(later);
+                }
+                else if (next == source) {
+                    boundary.erase(source);
+
+                    edges.erase(edge);
+                    addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal);
+
+                    indices.push_back(source);
+                    indices.push_back(opposite);
+                    indices.push_back(target);
+
+                    flag[index] = true;
+
+                    for (const CCandidate& candidate : later)
+                        heap.push(candidate);
+                    std::vector<CCandidate>().swap(later);
+                }
+                else {
+                    int index0 = -1, index1 = -1;
+                    for (const std::pair<int, int>& pair : candidates[std::make_pair(source, opposite)])
+                        if (pair.first == next && !flag[pair.second]) {
+                            index0 = pair.second;
+                            break;
+                        }
+                    for (const std::pair<int, int>& pair : candidates[std::make_pair(target, opposite)])
+                        if (pair.first == last && !flag[pair.second]) {
+                            index1 = pair.second;
+                            break;
+                        }
+
+                    Eigen::Vector3f normal0 = calculateNormal(points, next, opposite, source);
+                    Eigen::Vector3f normal1 = calculateNormal(points, target, opposite, last);
+
+                    float beta0 = std::acos(normal.dot(normal0));
+                    float beta1 = std::acos(normal.dot(normal1));
+
+                    float radius0 = index0 > -1 ? radii[index0] : FLT_MAX;
+                    float radius1 = index1 > -1 ? radii[index1] : FLT_MAX;
+
+                    if (index0 > -1 && beta0 < ALPHA && radius0 < radius1) {
+                        boundary.split(source, target, opposite, next);
+
+                        edges.erase(edge);
+                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(opposite, target)], opposite, target, normal);
+                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, next)], source, next, normal0);
+
+                        indices.push_back(source);
+                        indices.push_back(opposite);
+                        indices.push_back(target);
+
+                        indices.push_back(next);
+                        indices.push_back(opposite);
+                        indices.push_back(source);
+
+                        flag[index] = true;
+                        flag[index0] = true;
+
+                        for (const CCandidate& candidate : later)
+                            heap.push(candidate);
+                        std::vector<CCandidate>().swap(later);
+                    }
+                    else if (index1 > -1 && beta1 < ALPHA && radius0 > radius1) {
                         boundary.split(source, target, last, opposite);
 
                         edges.erase(edge);
-                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal, maximumFacetLength);
-                        normal = calculateNormal(points, target, opposite, last);
-                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(last, target)], last, target, normal, maximumFacetLength);
+                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(source, opposite)], source, opposite, normal);
+                        addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(last, target)], last, target, normal1);
 
                         indices.push_back(source);
                         indices.push_back(opposite);
-                        indices.push_back(opposite);
                         indices.push_back(target);
-                        indices.push_back(target);
-                        indices.push_back(source);
 
                         indices.push_back(target);
                         indices.push_back(opposite);
-                        indices.push_back(opposite);
                         indices.push_back(last);
-                        indices.push_back(last);
-                        indices.push_back(target);
+
+                        flag[index] = true;
+                        flag[index1] = true;
+
+                        for (const CCandidate& candidate : later)
+                            heap.push(candidate);
+                        std::vector<CCandidate>().swap(later);
                     }
+                    else
+                        later.push_back(now);
                 }
+            }
+            else {
+                flag[index] = true;
+
+                CCandidate candidate = calculateCandidate(points, radii, flag, candidates[std::make_pair(source, target)], source, target, edges[edge]);
+                if (!candidate.empty())
+                    heap.push(candidate);
             }
         }
     }
+
+    std::vector<CBoundary> boundaries = boundary.getBoundaries();
+    for (const CBoundary& boundary : boundaries)
+        if (boundary.size() == 3) {
+            std::vector<int> indicesTemp = boundary.getIndices();
+            
+            int x = indicesTemp[0];
+            int y = indicesTemp[1];
+            int z = indicesTemp[2];
+
+            float a = (points[x] - points[y]).norm();
+            float b = (points[y] - points[z]).norm();
+            float c = (points[z] - points[x]).norm();
+
+            if (a <= maximumFacetLength && b <= maximumFacetLength && c <= maximumFacetLength) {
+                indices.push_back(x);
+                indices.push_back(y);
+                indices.push_back(z);
+            }
+        }
 
     return new CMesh(m_points, indices);
 }

@@ -12,7 +12,8 @@ private:
 public:
     CMeshBoundary(const int p0, const int p1, const int p2);
     ~CMeshBoundary();
-    bool contain(const int p) const;
+    std::vector<CBoundary> getBoundaries() const;
+    int contain(const int p) const;
     void neighbors(const int p, int& last, int& next) const;
     void insert(const int last, const int next, const int p);
     void erase(const int p);

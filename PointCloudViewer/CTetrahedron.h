@@ -18,7 +18,6 @@ public:
     ~CTetrahedron();
     std::vector<std::tuple<int, int, int>> getTriangles() const;
     bool contain(const Eigen::Vector3f& point) const;
-    bool boundary(const int size) const;
 };
 
 #endif

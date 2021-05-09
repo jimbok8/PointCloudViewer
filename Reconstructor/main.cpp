@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     std::vector<Vertex> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/pool.dat");
+    std::ifstream fin("../data/temp.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;

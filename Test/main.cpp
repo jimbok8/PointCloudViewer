@@ -98,7 +98,7 @@ static bool compareMesh() {
     }
 
     int num = 0;
-    for (int i = 0; i < cindices.size(); i++) {
+    for (int i = 0; i < cindices.size(); i += 3) {
         std::vector<int> points;
         points.push_back(cindices[i]);
         points.push_back(cindices[i + 1]);
@@ -111,7 +111,7 @@ static bool compareMesh() {
 
     float rate = (float)num / ((float)std::max(indices.size(), cindices.size()) / 3.0f);
     std::cout << indices.size() / 3 << ' ' << cindices.size() / 3 << ' ' << rate << std::endl;
-    return rate > 0.6f;
+    return rate > 0.9f;
 }
 
 static void refresh() {

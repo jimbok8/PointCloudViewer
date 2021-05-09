@@ -5,6 +5,10 @@ CBoundary::CBoundary(const std::vector<int>& indices) :
 
 CBoundary::~CBoundary() {}
 
+std::vector<int> CBoundary::getIndices() const {
+    return m_indices;
+}
+
 int CBoundary::size() const {
     return m_indices.size();
 }
@@ -43,20 +47,12 @@ void CBoundary::erase(const int p) {
 }
 
 CBoundary CBoundary::split(const int p0, const int p1, const int p2, const int p3) {
-    std::cout << m_indices.size() << std::endl;
-    for (auto index : m_indices)
-        std::cout << index << ' ';
-    std::cout << std::endl << p0 << ' ' << p1 << ' ' << p2 << ' ' << p3 << std::endl;
-
     auto iter = m_indices.begin();
     for (; iter != m_indices.end(); iter++)
-        if (*iter == p0)
+        if (*iter == p1)
             break;
     
     std::vector<int> indices;
-    iter++;
-    if (iter == m_indices.end())
-        iter = m_indices.begin();
     while (*iter != p3) {
         indices.push_back(*iter);
         iter = m_indices.erase(iter);
