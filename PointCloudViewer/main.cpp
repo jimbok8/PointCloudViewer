@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     CSimplifyParameter simplifyParameter(0.3f);
     CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 10000);
     CSmoothParameter smoothParameter(64, 30.0f);
-    CReconstructParameter reconstructParameter(4, 1.0f);
+    CReconstructParameter reconstructParameter(4, 0.5f);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
         if (ImGui::TreeNodeEx("Displaying options", true)) {
             ImGui::RadioButton("Display original point cloud", &display, 0);
             ImGui::RadioButton("Display simplified point cloud", &display, 1);
-            ImGui::RadioButton("Display upsampled point cloud", &display, 2);
+            ImGui::RadioButton("Display resampled point cloud", &display, 2);
             ImGui::RadioButton("Display smoothed point cloud", &display, 3);
             ImGui::RadioButton("Display reconstructed mesh", &display, 4);
             ImGui::NewLine();
@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
 
         if (ImGui::Button("Simplify"))
             simplifies[cluster] = origins[cluster]->simplify(simplifyParameter);
-        if (ImGui::Button("Upsample") && simplifies[cluster] != nullptr)
+        if (ImGui::Button("Resample") && simplifies[cluster] != nullptr)
             resamples[cluster] = simplifies[cluster]->resample(resampleParameter);
         if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
             smoothes[cluster] = resamples[cluster]->smooth(smoothParameter);

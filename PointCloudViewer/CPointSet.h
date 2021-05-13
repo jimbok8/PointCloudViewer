@@ -16,6 +16,7 @@
 
 #include "CPoint.h"
 #include "CMesh.h"
+#include "CTriangle.h"
 #include "CTetrahedron.h"
 #include "CCandidate.h"
 #include "CMeshBoundary.h"

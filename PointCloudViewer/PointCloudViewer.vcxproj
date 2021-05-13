@@ -152,6 +152,7 @@
     <ClCompile Include="CReconstructParameter.cpp" />
     <ClCompile Include="CSmoothParameter.cpp" />
     <ClCompile Include="CTetrahedron.cpp" />
+    <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="CMesh.cpp" />
     <ClCompile Include="CPoint.cpp" />
@@ -173,6 +174,7 @@
     <ClInclude Include="CSimplifyParameter.h" />
     <ClInclude Include="CSmoothParameter.h" />
     <ClInclude Include="CTetrahedron.h" />
+    <ClInclude Include="CTriangle.h" />
     <ClInclude Include="TransformHelper.h" />
   </ItemGroup>
   <ItemGroup>

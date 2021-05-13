@@ -550,11 +550,11 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     std::list<CTetrahedron> tetrahedrons;
     tetrahedrons.push_back(CTetrahedron(points, points.size() - 4, points.size() - 3, points.size() - 2, points.size() - 1));
     for (int i = 0; i < points.size() - 4; i++) {
-        std::set<std::tuple<int, int, int>> triangles;
+        std::set<CTriangle> triangles;
         for (auto iter = tetrahedrons.begin(); iter != tetrahedrons.end(); )
             if (iter->contain(points[i])) {
-                std::vector<std::tuple<int, int, int>> trianglesTemp = iter->getTriangles();
-                for (const std::tuple<int, int, int>& triangleTemp : trianglesTemp) {
+                std::vector<CTriangle> trianglesTemp = iter->getTriangles();
+                for (const CTriangle& triangleTemp : trianglesTemp) {
                     auto jter = triangles.find(triangleTemp);
                     if (jter != triangles.end())
                         triangles.erase(jter);
@@ -567,42 +567,46 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
             else
                 iter++;
 
-        for (const std::tuple<int, int, int>& triangle : triangles)
-            tetrahedrons.push_back(CTetrahedron(points, i, std::get<0>(triangle), std::get<1>(triangle), std::get<2>(triangle)));
+        for (const CTriangle& triangle : triangles)
+            tetrahedrons.push_back(CTetrahedron(points, i, triangle));
     }
 
-    std::set<std::tuple<int, int, int>> triangles;
+    std::set<CTriangle> triangles;
     for (const CTetrahedron& tetrahedron : tetrahedrons) {
-        std::vector<std::tuple<int, int, int>> trianglesTemp = tetrahedron.getTriangles();
-        for (const std::tuple<int, int, int>& triangleTemp : trianglesTemp) {
-            int x = std::get<0>(triangleTemp);
-            int y = std::get<1>(triangleTemp);
-            int z = std::get<2>(triangleTemp);
+        std::vector<CTriangle> trianglesTemp = tetrahedron.getTriangles();
+        for (const CTriangle& triangleTemp : trianglesTemp) {
+            std::vector<int> indices = triangleTemp.getIndices();
+            std::vector<float> lengths = triangleTemp.getLengths();
+            bool flag = true;
+            for (int i = 0; i < 3; i++)
+                if (indices[i] >= m_points.size() || lengths[i] > maximumFacetLength) {
+                    flag = false;
+                    break;
+                }
 
-            float a = (points[x] - points[y]).norm();
-            float b = (points[y] - points[z]).norm();
-            float c = (points[z] - points[x]).norm();
-            
-            if (x < m_points.size() && y < m_points.size() && z < m_points.size() && a <= maximumFacetLength && b <= maximumFacetLength && c <= maximumFacetLength)
+            if (flag)
                 triangles.insert(triangleTemp);
         }
     }
 
     float minRadius = FLT_MAX;
     int seedIndex;
-    std::tuple<int, int, int> seedTriangle;
+    std::vector<int> seedIndices;
     std::vector<float> radii;
     std::map<std::pair<int, int>, std::vector<std::pair<int, int>>> candidates;
-    for (const std::tuple<int, int, int>& triangle : triangles) {
-        int p0 = std::get<0>(triangle);
-        int p1 = std::get<1>(triangle);
-        int p2 = std::get<2>(triangle);
-        float radius = calculateRadius(points, p0, p1, p2);
+    for (const CTriangle& triangle : triangles) {
+        std::vector<int> indices = triangle.getIndices();
+
+        float radius = triangle.getRadius();
         if (radius < minRadius) {
             minRadius = radius;
             seedIndex = radii.size();
-            seedTriangle = triangle;
+            seedIndices = indices;
         }
+
+        int p0 = indices[0];
+        int p1 = indices[1];
+        int p2 = indices[2];
         candidates[std::make_pair(p0, p1)].push_back(std::make_pair(p2, radii.size()));
         candidates[std::make_pair(p1, p0)].push_back(std::make_pair(p2, radii.size()));
         candidates[std::make_pair(p0, p2)].push_back(std::make_pair(p1, radii.size()));
@@ -618,9 +622,9 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
     std::vector<CCandidate> later;
     std::vector<bool> flag(triangles.size(), false);
     std::vector<unsigned int> indices;
-    int p0 = std::get<0>(seedTriangle);
-    int p1 = std::get<1>(seedTriangle);
-    int p2 = std::get<2>(seedTriangle);
+    int p0 = seedIndices[0];
+    int p1 = seedIndices[1];
+    int p2 = seedIndices[2];
     Eigen::Vector3f normal = calculateNormal(points, p0, p1, p2);
     flag[seedIndex] = true;
     addEdge(points, edges, heap, radii, flag, candidates[std::make_pair(p0, p1)], p0, p1, normal);

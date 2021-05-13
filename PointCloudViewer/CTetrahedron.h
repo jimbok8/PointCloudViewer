@@ -6,17 +6,20 @@
 
 #include <Eigen/Dense>
 
+#include "CTriangle.h"
+
 class CTetrahedron {
 private:
-    std::vector<int> m_indices;
-    std::vector<std::tuple<int, int, int>> m_triangles;
+    std::vector<CTriangle> m_triangles;
     Eigen::Vector3f m_center;
     float m_radius2;
+    void calculateCircumcircle(const std::vector<Eigen::Vector3f>& points, const int index0, const int index1, const int index2, const int index3);
 
 public:
-    CTetrahedron(const std::vector<Eigen::Vector3f>& points, const int i0, const int i1, const int i2, const int i3);
+    CTetrahedron(const std::vector<Eigen::Vector3f>& points, const int index0, const int index1, const int index2, const int index3);
+    CTetrahedron(const std::vector<Eigen::Vector3f>& points, const int index, const CTriangle& triangle);
     ~CTetrahedron();
-    std::vector<std::tuple<int, int, int>> getTriangles() const;
+    std::vector<CTriangle> getTriangles() const;
     bool contain(const Eigen::Vector3f& point) const;
 };
 
