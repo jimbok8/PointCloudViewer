@@ -431,19 +431,6 @@ CPointSet* CPointSet::smooth(const CSmoothParameter& parameter) const {
     return new CPointSet(points);
 }
 
-float CPointSet::calculateRadius(const std::vector<Eigen::Vector3f>& points, const int p0, const int p1, const int p2) const {
-    Eigen::Vector3f v0 = points[p0];
-    Eigen::Vector3f v1 = points[p1];
-    Eigen::Vector3f v2 = points[p2];
-
-    float a = (v1 - v0).norm();
-    float b = (v2 - v1).norm();
-    float c = (v0 - v2).norm();
-    float p = (a + b + c) / 2.0f;
-
-    return a * b * c / std::sqrt(4.0f * p * (p - a) * (p - b) * (p - c));
-}
-
 Eigen::Vector3f CPointSet::calculateNormal(const std::vector<Eigen::Vector3f>& points, const int p0, const int p1, const int p2) const {
     Eigen::Vector3f v0 = points[p0];
     Eigen::Vector3f v1 = points[p1];
