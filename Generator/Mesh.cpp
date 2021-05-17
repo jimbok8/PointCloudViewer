@@ -56,16 +56,24 @@ void Mesh::processNode(const aiNode* node, const aiScene* scene) {
 }
 
 void Mesh::processMesh(const aiMesh* mesh) {
+    unsigned int size = vertices.size();
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
         glm::vec3 position(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
         glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
         vertices.push_back(Vertex(position, normal));
     }
 
-    unsigned int size = vertices.size();
     for (unsigned int i = 0; i < mesh->mNumFaces; i++)
         for (unsigned int j = 0; j < mesh->mFaces[i].mNumIndices; j++)
             indices.push_back(mesh->mFaces[i].mIndices[j] + size);
+}
+
+std::vector<Vertex> Mesh::getVertices() const {
+    return vertices;
+}
+
+std::vector<unsigned int> Mesh::getIndices() const {
+    return indices;
 }
 
 void Mesh::render() const {

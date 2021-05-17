@@ -26,6 +26,8 @@ private:
 public:
     Mesh(const std::string& path);
     ~Mesh();
+    std::vector<Vertex> getVertices() const;
+    std::vector<unsigned int> getIndices() const;
     void render() const;
 };
 

@@ -1,21 +1,26 @@
 #include <climits>
+#include <cfloat>
+#include <string>
+#include <random>
 #include <iostream>
+#include <fstream>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-//#include <imgui.h>
-//#include <imgui_impl_glfw.h>
-//#include <imgui_impl_opengl3.h>
-//#include <imgui_impl_opengl3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_opengl3.h>
 
-#include "Shader.h"
+#include "ConfigHelper.h"
+#include "Vertex.h"
 #include "Mesh.h"
-
-const unsigned int WINDOW_WIDTH = 1920;
-const unsigned int WINDOW_HEIGHT = 1080;
-const float PI = std::acos(-1);
+#include "PointSet.h"
+#include "Triangle.h"
+#include "BVH.h"
+#include "Shader.h"
 
 int lastX = INT_MIN, lastY = INT_MIN;
 float factor = 1.0f;
@@ -59,6 +64,51 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         glfwSetWindowShouldClose(window, true);
 }
 
+PointSet generate(const Mesh& mesh, const glm::mat4& model, const glm::vec3& camera, const float sigma) {
+    std::vector<Vertex> vertices = mesh.getVertices();
+    std::vector<unsigned int> indices = mesh.getIndices();
+    std::vector<Triangle> triangles;
+
+    for (auto iter = indices.begin(); iter != indices.end(); ) {
+        glm::vec3 p0 = vertices[*(iter++)].position;
+        glm::vec3 p1 = vertices[*(iter++)].position;
+        glm::vec3 p2 = vertices[*(iter++)].position;
+
+        p0 = glm::vec3(model * glm::vec4(p0, 1.0f));
+        p1 = glm::vec3(model * glm::vec4(p1, 1.0f));
+        p2 = glm::vec3(model * glm::vec4(p2, 1.0f));
+
+        triangles.push_back(Triangle(p0, p1, p2));
+    }
+
+    BVH bvh(triangles);
+
+    glm::vec3 f = glm::normalize(-camera);
+    glm::vec3 u(0.0f, 1.0f, 0.0f);
+    glm::vec3 l = glm::cross(u, f);
+    float scale = 2.0f * std::tan(PI / 8.0f) / (float)WINDOW_HEIGHT;
+    glm::vec3 du = u * scale;
+    glm::vec3 dl = l * scale;
+    glm::vec3 o = camera + f + (du * (float)WINDOW_HEIGHT + dl * (float)WINDOW_WIDTH) * 0.5f;
+    std::default_random_engine engine;
+    std::normal_distribution<float> distribution(0.0f, sigma);
+    vertices.clear();
+
+    for (int i = 0; i < WINDOW_WIDTH; i++)
+        for (int j = 0; j < WINDOW_HEIGHT; j++)
+            if (i % 4 == 0 && j % 4 == 0) {
+                glm::vec3 direction = glm::normalize(o - dl * ((float)i + 0.5f) - du * ((float)j + 0.5f) - camera);
+                Ray ray(camera, direction);
+                float t = bvh.trace(ray);
+                if (t < FLT_MAX) {
+                    glm::vec3 point = ray.point(t);
+                    vertices.push_back(Vertex(glm::vec3(point.x + distribution(engine), point.y + distribution(engine), point.z + distribution(engine))));
+                }
+            }
+
+    return PointSet(vertices);
+}
+
 int main(int argc, char** argv) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -83,28 +133,56 @@ int main(int argc, char** argv) {
     }
     glEnable(GL_DEPTH_TEST);
 
-    //IMGUI_CHECKVERSION();
-    //ImGui::CreateContext();
-    //ImGuiIO& io = ImGui::GetIO();
-    //ImGui::StyleColorsDark();
-    //ImGui_ImplGlfw_InitForOpenGL(window, true);
-    //ImGui_ImplOpenGL3_Init("#version 330 core");
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    Shader shader("shader/VertexShader.glsl", "shader/FragmentShader.glsl");
-    Mesh mesh("model/suzanne.obj");
+    Shader shader("shader/NormalVertex.glsl", "shader/NormalFragment.glsl");
+    Mesh mesh("model/bunny.obj");
+    PointSet pointSet;
+
+    int display = 0;
+    float lightPower = 30.0f, sigma = 1.0f;
+    glm::vec3 lightPosition(3.0f, 3.0f, 3.0f), cameraPosition(0.0f, 0.0f, 2.0f);
+    char buf[128];
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //ImGui_ImplOpenGL3_NewFrame();
-        //ImGui_ImplGlfw_NewFrame();
-        //ImGui::NewFrame();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-        //ImGui::Begin("Options");
+        ImGui::Begin("Options");
 
-        float lightPower = 50.0f;
-        glm::vec3 lightPosition(3.0f, 3.0f, 0.0f), cameraPosition(0.0f, 0.0f, 5.0f);
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Displaying options", true)) {
+            ImGui::RadioButton("Display mesh", &display, 0);
+            ImGui::RadioButton("Display generated point cloud", &display, 1);
+            ImGui::TreePop();
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Light options", true)) {
+            ImGui::SliderFloat("Light power", &lightPower, 0.0f, 50.0f);
+            ImGui::SliderFloat("Light position x", &lightPosition.x, -10.0f, 10.0f);
+            ImGui::SliderFloat("Light position y", &lightPosition.y, -10.0f, 10.0f);
+            ImGui::SliderFloat("Light position z", &lightPosition.z, -10.0f, 10.0f);
+            ImGui::TreePop();
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Camera options", true)) {
+            ImGui::SliderFloat("Camera position x", &cameraPosition.x, -10.0f, 10.0f);
+            ImGui::SliderFloat("Camera position y", &cameraPosition.y, -10.0f, 10.0f);
+            ImGui::SliderFloat("Camera position z", &cameraPosition.z, -10.0f, 10.0f);
+            ImGui::TreePop();
+        }
+        
         glm::mat4 modelMat, viewMat, projectionMat;
         modelMat = glm::scale(rotate, glm::vec3(factor));
         viewMat = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -118,20 +196,46 @@ int main(int argc, char** argv) {
         shader.setVec3("lightPosition", lightPosition);
         shader.setVec3("cameraPosition", cameraPosition);
 
-        mesh.render();
+        switch (display) {
+        case 0:
+            mesh.render();
+            break;
 
-        //ImGui::End();
+        case 1:
+            pointSet.render();
+            break;
 
-        //ImGui::Render();
-        //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        default:
+            break;
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Generate options", true)) {
+            ImGui::SliderFloat("Sigma", &sigma, 0.0f, 5.0f);
+            ImGui::InputText("File name", buf, 128);
+            if (ImGui::Button("Generate"))
+                pointSet = generate(mesh, modelMat, cameraPosition, sigma);
+            if (ImGui::Button("Save")) {
+                std::ofstream fout("../data/" + std::string(buf));
+                std::vector<Vertex> vertices = pointSet.getVertices();
+
+                for (const Vertex& vertex : vertices)
+                    fout << "v " << vertex.position.x << ' ' << vertex.position.y << ' ' << vertex.position.z << " 0 0" << std::endl;
+            }
+        }
+
+        ImGui::End();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    //ImGui_ImplOpenGL3_Shutdown();
-    //ImGui_ImplGlfw_Shutdown();
-    //ImGui::DestroyContext();
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
 

@@ -6,6 +6,7 @@
 struct Vertex {
 public:
     glm::vec3 position, normal;
+    Vertex(const glm::vec3& position);
     Vertex(const glm::vec3& position, const glm::vec3& normal);
     ~Vertex();
 };
