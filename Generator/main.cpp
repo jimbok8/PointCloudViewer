@@ -96,7 +96,7 @@ PointSet generate(const Mesh& mesh, const glm::mat4& model, const glm::vec3& cam
 
     for (int i = 0; i < WINDOW_WIDTH; i++)
         for (int j = 0; j < WINDOW_HEIGHT; j++)
-            if (i % 4 == 0 && j % 4 == 0) {
+            if (rand() % 200 == 0) {
                 glm::vec3 direction = glm::normalize(o - dl * ((float)i + 0.5f) - du * ((float)j + 0.5f) - camera);
                 Ray ray(camera, direction);
                 float t = bvh.trace(ray);
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     PointSet pointSet;
 
     int display = 0;
-    float lightPower = 30.0f, sigma = 1.0f;
+    float lightPower = 30.0f, sigma = 0.02f;
     glm::vec3 lightPosition(3.0f, 3.0f, 3.0f), cameraPosition(0.0f, 0.0f, 2.0f);
     char buf[128];
 
@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Generate options", true)) {
-            ImGui::SliderFloat("Sigma", &sigma, 0.0f, 5.0f);
+            ImGui::SliderFloat("Sigma", &sigma, 0.0f, 0.1f);
             ImGui::InputText("File name", buf, 128);
             if (ImGui::Button("Generate"))
                 pointSet = generate(mesh, modelMat, cameraPosition, sigma);
