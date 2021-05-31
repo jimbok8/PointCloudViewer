@@ -21,9 +21,24 @@
     <ClCompile Include="CPoint.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CPointSet.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CShader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPoint.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CPointSet.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

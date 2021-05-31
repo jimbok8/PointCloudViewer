@@ -146,10 +146,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CPoint.cpp" />
+    <ClCompile Include="CPointSet.cpp" />
+    <ClCompile Include="CShader.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPoint.h" />
+    <ClInclude Include="CPointSet.h" />
+    <ClInclude Include="CShader.h" />
+    <ClInclude Include="TransformHelper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

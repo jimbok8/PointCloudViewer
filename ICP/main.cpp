@@ -8,16 +8,79 @@
 #include <Eigen/SVD>
 #include <Eigen/Cholesky>
 #include <ANN/ANN.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_opengl3.h>
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/registration/icp.h>
 
 #include "CPoint.h"
+#include "CPointSet.h"
+#include "CShader.h"
+#include "TransformHelper.h"
 
 const int MAX_ITERATION = 50;
 const float EPSILON = 1e-8;
 const float DISTANCE_THRESHOLD = 0.1f;
+const unsigned int WINDOW_WIDTH = 1920;
+const unsigned int WINDOW_HEIGHT = 1080;
+const float PI = std::acos(-1.0f);
+const Eigen::Vector3f COLORS[] = {
+    Eigen::Vector3f(1.0f, 0.0f, 0.0f),
+    Eigen::Vector3f(0.0f, 1.0f, 0.0f),
+    Eigen::Vector3f(0.0f, 0.0f, 1.0f),
+    Eigen::Vector3f(0.0f, 1.0f, 1.0f),
+    Eigen::Vector3f(1.0f, 0.0f, 1.0f),
+    Eigen::Vector3f(1.0f, 1.0f, 0.0f)
+};
+const int COLOR_SIZE = sizeof(COLORS) / sizeof(Eigen::Vector3f);
+
+static int g_lastX = INT_MIN, g_lastY = INT_MIN;
+static float g_factor = 1.0f;
+static bool g_press = false;
+static Eigen::Matrix4f g_rotation = Eigen::Matrix4f::Identity();
+
+static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
+static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        g_press = true;
+        g_lastX = g_lastY = INT_MIN;
+    }
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+        g_press = false;
+}
+
+static void cursorPosCallback(GLFWwindow* window, double x, double y) {
+    int newX = (int)x, newY = (int)y;
+    if (g_press && g_lastX != INT_MIN && g_lastY != INT_MIN && (newX != g_lastX || newY != g_lastY)) {
+        Eigen::Vector3f a = Eigen::Vector3f((float)g_lastX / WINDOW_WIDTH - 0.5f, 0.5f - (float)g_lastY / WINDOW_HEIGHT, 1.0f).normalized();
+        Eigen::Vector3f b = Eigen::Vector3f((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalized();
+        Eigen::Vector3f axis = a.cross(b);
+        float angle = a.dot(b);
+        g_rotation = rotate(axis, 10.0f * std::acos(angle)) * g_rotation;
+    }
+
+    g_lastX = newX;
+    g_lastY = newY;
+}
+
+static void scrollCallback(GLFWwindow* window, double x, double y) {
+    g_factor += 0.01f * (float)y;
+    g_factor = std::max(g_factor, 0.01f);
+}
+
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
 
 void readPointCloud(const std::string& path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     std::ifstream fin(path);
@@ -124,6 +187,7 @@ int main() {
 
     Eigen::Matrix3f R = Eigen::Matrix3f::Identity();
     Eigen::Vector3f t = Eigen::Vector3f::Zero();
+    std::vector<CPointSet> sets;
     for (int iter = 0; iter < MAX_ITERATION; iter++) {
         std::vector<CPoint> current;
         for (const CPoint& point : source)
@@ -140,6 +204,8 @@ int main() {
         Eigen::VectorXf b(6);
         A.setZero();
         b.setZero();
+
+        std::vector<int> indicesTemp;
 
         ANNidxArray indices = new ANNidx[1];
         ANNdistArray distances = new ANNdist[1];
@@ -172,12 +238,18 @@ int main() {
 
                 A += At;
                 b -= bt;
+
+                indicesTemp.push_back(indices[0]);
             }
+            else
+                indicesTemp.push_back(-1);
 
             annDeallocPt(pointTemp);
         }
         delete[] indices;
         delete[] distances;
+
+        sets.push_back(CPointSet(current, target, indicesTemp));
 
         //std::cout << loss / (float)num << std::endl;
 
