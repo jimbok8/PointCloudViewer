@@ -156,6 +156,10 @@
     <ClInclude Include="CShader.h" />
     <ClInclude Include="TransformHelper.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\ClusterFragment.glsl" />
+    <None Include="shader\ClusterVertex.glsl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -42,4 +42,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\ClusterFragment.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\ClusterVertex.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
 </Project>
