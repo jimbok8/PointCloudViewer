@@ -1,4 +1,5 @@
 #include <numeric>
+#include <ctime>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -15,9 +16,9 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_opengl3.h>
 
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/registration/icp.h>
+//#include <pcl/point_types.h>
+//#include <pcl/point_cloud.h>
+//#include <pcl/registration/icp.h>
 
 #include "CPoint.h"
 #include "CPointSet.h"
@@ -82,19 +83,19 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
         glfwSetWindowShouldClose(window, true);
 }
 
-void readPointCloud(const std::string& path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-    std::ifstream fin(path);
-    std::string s;
-    while (fin >> s) {
-        if (s == "v") {
-            float x, y, z, weight;
-            int cluster;
-            fin >> x >> y >> z >> cluster >> weight;
-            cloud->push_back(pcl::PointXYZ(x, y, z));
-        }
-        getline(fin, s);
-    }
-}
+//void readPointCloud(const std::string& path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+//    std::ifstream fin(path);
+//    std::string s;
+//    while (fin >> s) {
+//        if (s == "v") {
+//            float x, y, z, weight;
+//            int cluster;
+//            fin >> x >> y >> z >> cluster >> weight;
+//            cloud->push_back(pcl::PointXYZ(x, y, z));
+//        }
+//        getline(fin, s);
+//    }
+//}
 
 void readPoints(const std::string& path, std::vector<CPoint>& points) {
     std::ifstream fin(path);
@@ -108,6 +109,40 @@ void readPoints(const std::string& path, std::vector<CPoint>& points) {
         }
         getline(fin, s);
     }
+
+    ANNpointArray pointArray;
+    ANNkd_tree* tree;
+    pointArray = annAllocPts(points.size(), 3);
+    for (int i = 0; i < points.size(); i++)
+        for (int j = 0; j < 3; j++)
+            pointArray[i][j] = points[i].m_position(j);
+    tree = new ANNkd_tree(pointArray, points.size(), 3);
+
+    int k = 25;
+    for (int i = 0; i < points.size(); i++) {
+        ANNidxArray indices = new ANNidx[k];
+        ANNdistArray distances = new ANNdist[k];
+        tree->annkSearch(pointArray[i], k, indices, distances);
+
+        Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
+        for (int j = 0; j < k; j++)
+            avg += points[indices[j]].m_position;
+        avg /= (float)k;
+
+        Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
+        for (int j = 0; j < k; j++) {
+            Eigen::Vector3f x = points[indices[j]].m_position - avg;
+            cov += x * x.transpose();
+        }
+        cov /= (float)k;
+
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
+        solver.compute(cov);
+        points[i].m_normal = solver.eigenvectors().col(0);
+    }
+
+    annDeallocPts(pointArray);
+    delete tree;
 }
 
 Eigen::Vector3f calculateCentroid(const std::vector<CPoint>& points) {
@@ -119,6 +154,36 @@ Eigen::Vector3f calculateCentroid(const std::vector<CPoint>& points) {
 }
 
 int main() {
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "PointCloudViewer", nullptr, nullptr);
+    if (window == nullptr) {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetKeyCallback(window, keyCallback);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+    glEnable(GL_DEPTH_TEST);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+
     /*pcl::PointCloud<pcl::PointXYZ>::Ptr cloudIn(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOut(new pcl::PointCloud<pcl::PointXYZ>());
 
@@ -162,36 +227,13 @@ int main() {
             pointArray[i][j] = target[i].m_position(j);
     tree = new ANNkd_tree(pointArray, target.size(), 3);
 
-    int k = 25;
-    for (int i = 0; i < target.size(); i++) {
-        ANNidxArray indices = new ANNidx[k];
-        ANNdistArray distances = new ANNdist[k];
-        tree->annkSearch(pointArray[i], k, indices, distances);
-
-        Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
-        for (int j = 0; j < k; j++)
-            avg += target[indices[j]].m_position;
-        avg /= (float)k;
-
-        Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
-        for (int j = 0; j < k; j++) {
-            Eigen::Vector3f x = target[indices[j]].m_position - avg;
-            cov += x * x.transpose();
-        }
-        cov /= (float)k;
-
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
-        solver.compute(cov);
-        target[i].m_normal = solver.eigenvectors().col(0);
-    }
-
     Eigen::Matrix3f R = Eigen::Matrix3f::Identity();
     Eigen::Vector3f t = Eigen::Vector3f::Zero();
     std::vector<CPointSet> sets;
     for (int iter = 0; iter < MAX_ITERATION; iter++) {
         std::vector<CPoint> current;
-        for (const CPoint& point : source)
-            current.push_back(CPoint(R * point.m_position + t));
+        for (const CPoint& pointTemp : source)
+            current.push_back(CPoint(R * pointTemp.m_position + t, R * pointTemp.m_normal));
 
         Eigen::Vector3f centroidCurrent = calculateCentroid(current);
         Eigen::Vector3f centroidTarget = calculateCentroid(target);
@@ -295,34 +337,34 @@ int main() {
         fout << "v " << point(0) << ' ' << point(1) << ' ' << point(2) << " 2 0" << std::endl;
     }
 
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "PointCloudViewer", nullptr, nullptr);
-    if (window == nullptr) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    glfwSetCursorPosCallback(window, cursorPosCallback);
-    glfwSetScrollCallback(window, scrollCallback);
-    glfwSetKeyCallback(window, keyCallback);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-    glEnable(GL_DEPTH_TEST);
-
-    CShader shader("shader/CulsterVertex.glsl", "shader/ClusterFragment.glsl");
+    CShader shader("shader/ClusterVertex.glsl", "shader/ClusterFragment.glsl");
+    int frame = 0;
+    bool play = false, flag = true;
+    clock_t last;
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Begin("Options");
+        
+        ImGui::Checkbox("Display Lines", &flag);
+        ImGui::InputInt("Frame", &frame);
+        if (!play && ImGui::Button("Play")) {
+            play = true;
+            last = clock();
+        } 
+        else if (play && ImGui::Button("Pause"))
+            play = false;
+
+        if (play && (clock() - last >= 1000)) {
+            frame = (frame + 1) % sets.size();
+            last = clock();
+        }
 
         Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         Eigen::Matrix4f modelMat, viewMat, projectionMat;
@@ -330,11 +372,27 @@ int main() {
         viewMat = lookAt(cameraPosition, Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
         projectionMat = perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
+        shader.use();
+        shader.setMatrix4D("model", modelMat);
+        shader.setMatrix4D("view", viewMat);
+        shader.setMatrix4D("projection", projectionMat);
+        shader.setVector3D("lightDirection", lightDirection);
+        shader.setVector3D("cameraPosition", cameraPosition);
 
+        sets[frame].render(flag);
+
+        ImGui::End();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
 

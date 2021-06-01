@@ -8,9 +8,8 @@ uniform vec3 lightDirection;
 uniform vec3 cameraPosition;
 
 void main() {
-    vec3 color = vertexColor;
-    vec3 ambientColor = 0.1 * color;
-    vec3 diffuseColor = 0.6 * color;
+    vec3 ambientColor = 0.1 * vertexColor;
+    vec3 diffuseColor = 0.6 * vertexColor;
     vec3 specularColor = vec3(0.3);
 
     vec3 ambient = ambientColor;
