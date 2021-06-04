@@ -102,7 +102,7 @@ PointSet generate(const Mesh& mesh, const glm::mat4& model, const glm::vec3& cam
                 float t = bvh.trace(ray);
                 if (t < FLT_MAX) {
                     glm::vec3 point = ray.point(t);
-                    vertices.push_back(Vertex(glm::vec3(point.x + distribution(engine), point.y + distribution(engine), point.z + distribution(engine))));
+                    vertices.push_back(Vertex(glm::vec3(point.x/* + distribution(engine)*/, point.y/* + distribution(engine)*/, point.z/* + distribution(engine)*/)));
                 }
             }
 

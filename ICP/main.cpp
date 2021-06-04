@@ -27,7 +27,7 @@
 
 const int MAX_ITERATION = 50;
 const float EPSILON = 1e-8;
-const float DISTANCE_THRESHOLD = 0.1f;
+const float DISTANCE_THRESHOLD = 0.01f;
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1.0f);
@@ -216,8 +216,8 @@ int main() {
         fout << "v " << point.x << ' ' << point.y << ' ' << point.z << " 2 0" << std::endl;*/
 
     std::vector<CPoint> source, target;
-    readPoints("../data/generated1.dat", source);
-    readPoints("../data/generated2.dat", target);
+    readPoints("../data/bunny1.dat", source);
+    readPoints("../data/bunny2.dat", target);
 
     ANNpointArray pointArray;
     ANNkd_tree* tree;
