@@ -23,7 +23,7 @@
 #include "Shader.h"
 
 int lastX = INT_MIN, lastY = INT_MIN;
-float factor = 1.0f;
+float factor = 0.001f;
 bool press;
 glm::mat4 rotate(1.0f);
 
@@ -55,8 +55,8 @@ void cursorPosCallback(GLFWwindow* window, double x, double y) {
 }
 
 void scrollCallback(GLFWwindow* window, double x, double y) {
-    factor += 0.01f * (float)y;
-    factor = std::max(factor, 0.01f);
+    factor += 0.001f * (float)y;
+    factor = std::max(factor, 0.001f);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
     Shader shader("shader/NormalVertex.glsl", "shader/NormalFragment.glsl");
-    Mesh mesh("model/bunny.obj");
+    Mesh mesh("model/boat.obj");
     PointSet pointSet;
 
     int display = 0;

@@ -2,6 +2,7 @@
 #include <ctime>
 #include <string>
 #include <vector>
+#include <queue>
 #include <fstream>
 #include <iostream>
 
@@ -26,7 +27,7 @@
 #include "TransformHelper.h"
 
 const int MAX_ITERATION = 50;
-const float EPSILON = 1e-8;
+const float EPSILON = 0.001f;
 const float DISTANCE_THRESHOLD = 0.01f;
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
@@ -119,14 +120,19 @@ void readPoints(const std::string& path, std::vector<CPoint>& points) {
     tree = new ANNkd_tree(pointArray, points.size(), 3);
 
     int k = 25;
+    std::vector<std::vector<std::pair<int, float>>> graph(points.size());
     for (int i = 0; i < points.size(); i++) {
         ANNidxArray indices = new ANNidx[k];
         ANNdistArray distances = new ANNdist[k];
         tree->annkSearch(pointArray[i], k, indices, distances);
 
         Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
-        for (int j = 0; j < k; j++)
+        for (int j = 0; j < k; j++) {
             avg += points[indices[j]].m_position;
+            float dist2 = (points[i].m_position - points[indices[j]].m_position).squaredNorm();
+            graph[i].push_back(std::make_pair(indices[j], dist2));
+            graph[indices[j]].push_back(std::make_pair(i, dist2));
+        }
         avg /= (float)k;
 
         Eigen::Matrix3f cov = Eigen::Matrix3f::Zero();
@@ -139,6 +145,29 @@ void readPoints(const std::string& path, std::vector<CPoint>& points) {
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
         solver.compute(cov);
         points[i].m_normal = solver.eigenvectors().col(0);
+    }
+
+    std::vector<float> dist(points.size(), FLT_MAX);
+    std::vector<bool> flag(points.size(), false);
+    std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> heap;
+    int seed = rand() % points.size();
+    dist[seed] = 0.0f;
+    heap.push(std::make_pair(dist[seed], 0));
+    while (!heap.empty()) {
+        int now = heap.top().second;
+        heap.pop();
+        if (flag[now])
+            continue;
+        flag[now] = true;
+        for (const std::pair<int, float>& pair : graph[now]) {
+            int next = pair.first;
+            if (pair.second < dist[next]) {
+                dist[next] = pair.second;
+                heap.push(std::make_pair(dist[next], next));
+                if (points[next].m_normal.dot(points[now].m_normal) < 0.0f)
+                    points[next].m_normal = -points[next].m_normal;
+            }
+        }
     }
 
     annDeallocPts(pointArray);
@@ -216,8 +245,8 @@ int main() {
         fout << "v " << point.x << ' ' << point.y << ' ' << point.z << " 2 0" << std::endl;*/
 
     std::vector<CPoint> source, target;
-    readPoints("../data/bunny1.dat", source);
-    readPoints("../data/bunny2.dat", target);
+    readPoints("../data/boat1.dat", source);
+    readPoints("../data/boat2.dat", target);
 
     ANNpointArray pointArray;
     ANNkd_tree* tree;
@@ -227,23 +256,24 @@ int main() {
             pointArray[i][j] = target[i].m_position(j);
     tree = new ANNkd_tree(pointArray, target.size(), 3);
 
-    Eigen::Matrix3f R = Eigen::Matrix3f::Identity();
-    Eigen::Vector3f t = Eigen::Vector3f::Zero();
+    Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d t = Eigen::Vector3d::Zero();
     std::vector<CPointSet> sets;
+    double loss = 1e20;
     for (int iter = 0; iter < MAX_ITERATION; iter++) {
         std::vector<CPoint> current;
         for (const CPoint& pointTemp : source)
-            current.push_back(CPoint(R * pointTemp.m_position + t, R * pointTemp.m_normal));
+            current.push_back(CPoint(R.cast<float>() * pointTemp.m_position + t.cast<float>(), R.cast<float>() * pointTemp.m_normal));
 
         Eigen::Vector3f centroidCurrent = calculateCentroid(current);
         Eigen::Vector3f centroidTarget = calculateCentroid(target);
 
-        /*Eigen::Matrix3f H = Eigen::Matrix3f::Zero();
-        float loss = 0.0f;
-        int num = 0;*/
+        //Eigen::Matrix3f H = Eigen::Matrix3f::Zero();
+        float lossTemp = 0.0f;
+        int num = 0;
 
-        Eigen::MatrixXf A(6, 6);
-        Eigen::VectorXf b(6);
+        Eigen::MatrixXd A(6, 6);
+        Eigen::VectorXd b(6);
         A.setZero();
         b.setZero();
 
@@ -258,22 +288,23 @@ int main() {
             
             tree->annkSearch(pointTemp, 1, indices, distances);
             if (distances[0] < DISTANCE_THRESHOLD) {
-                /*H += (point.m_position - centroidCurrent) * (target[indices[0]].m_position - centroidTarget).transpose();
-                loss += (point.m_position - target[indices[0]].m_position).squaredNorm();
-                num++;*/
+                //H += (point.m_position - centroidCurrent) * (target[indices[0]].m_position - centroidTarget).transpose();
+                float dot = (point.m_position - target[indices[0]].m_position).dot(target[indices[0]].m_normal);
+                lossTemp += dot * dot;
+                num++;
 
-                Eigen::Vector3f p = point.m_position;
-                Eigen::Vector3f q = target[indices[0]].m_position;
-                Eigen::Vector3f n = target[indices[0]].m_normal;
-                Eigen::Vector3f c = p.cross(n);
+                Eigen::Vector3d p = point.m_position.cast<double>();
+                Eigen::Vector3d q = target[indices[0]].m_position.cast<double>();
+                Eigen::Vector3d n = target[indices[0]].m_normal.cast<double>();
+                Eigen::Vector3d c = p.cross(n);
 
-                Eigen::MatrixXf At(6, 6);
+                Eigen::MatrixXd At(6, 6);
                 At.block(0, 0, 3, 3) = c * c.transpose();
                 At.block(0, 3, 3, 3) = c * n.transpose();
                 At.block(3, 0, 3, 3) = c * n.transpose();
                 At.block(3, 3, 3, 3) = n * n.transpose();
 
-                Eigen::VectorXf bt(6);
+                Eigen::VectorXd bt(6);
                 bt.block(0, 0, 3, 1) = c;
                 bt.block(3, 0, 3, 1) = n;
                 bt *= (p - q).dot(n);
@@ -291,6 +322,11 @@ int main() {
         delete[] indices;
         delete[] distances;
 
+        if (std::fabs(loss - lossTemp) < EPSILON)
+            break;
+        else
+            loss = lossTemp;
+
         sets.push_back(CPointSet(current, target, indicesTemp));
 
         //std::cout << loss / (float)num << std::endl;
@@ -299,31 +335,35 @@ int main() {
         //R = svd.matrixV() * svd.matrixU().transpose();
         //t = centroidTarget - R * centroidCurrent;
 
-        Eigen::LLT<Eigen::MatrixXf> cholesky;
+        Eigen::LLT<Eigen::MatrixXd> cholesky;
         cholesky.compute(A);
-        Eigen::VectorXf x = cholesky.solve(b);
+        Eigen::VectorXd x = cholesky.solve(b);
 
-        Eigen::AngleAxisf rotationVectorX(x(0), Eigen::Vector3f(1, 0, 0));
-        Eigen::Matrix3f rotationMatrixX = rotationVectorX.toRotationMatrix();
+        Eigen::AngleAxisd rotationVectorX(x(0), Eigen::Vector3d(1, 0, 0));
+        Eigen::Matrix3d rotationMatrixX = rotationVectorX.toRotationMatrix();
 
-        Eigen::AngleAxisf rotationVectorY(x(1), Eigen::Vector3f(0, 1, 0));
-        Eigen::Matrix3f rotationMatrixY = rotationVectorY.toRotationMatrix();
+        Eigen::AngleAxisd rotationVectorY(x(1), Eigen::Vector3d(0, 1, 0));
+        Eigen::Matrix3d rotationMatrixY = rotationVectorY.toRotationMatrix();
 
-        Eigen::AngleAxisf rotationVectorZ(x(2), Eigen::Vector3f(0, 0, 1));
-        Eigen::Matrix3f rotationMatrixZ = rotationVectorZ.toRotationMatrix();
+        Eigen::AngleAxisd rotationVectorZ(x(2), Eigen::Vector3d(0, 0, 1));
+        Eigen::Matrix3d rotationMatrixZ = rotationVectorZ.toRotationMatrix();
 
-        R *= rotationMatrixX * rotationMatrixY * rotationMatrixZ;
-        t += x.block(3, 0, 3, 1);
+        Eigen::MatrixXd Rt = rotationMatrixX * rotationMatrixY * rotationMatrixZ;
+        Eigen::VectorXd tt = x.block(3, 0, 3, 1);
+
+        R *= Rt;
+        t += tt;
+
+        std::cout << num << std::endl << A << std::endl << b << std::endl << R << std::endl << t << std::endl << std::endl;
+        //std::cout << R << std::endl << t << std::endl << std::endl;
     }
 
     annDeallocPts(pointArray);
     delete tree;
 
-    std::cout << R << std::endl << t << std::endl;
-
     std::ofstream fout("../data/aligned.dat");
     for (const CPoint& pointTemp : source) {
-        Eigen::Vector3f point = R * pointTemp.m_position + t;
+        Eigen::Vector3f point = R.cast<float>() * pointTemp.m_position + t.cast<float>();
         fout << "v " << point(0) << ' ' << point(1) << ' ' << point(2) << " 0 0" << std::endl;
     }
 
