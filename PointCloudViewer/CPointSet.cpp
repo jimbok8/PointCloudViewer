@@ -537,6 +537,9 @@ CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, co
     };
 
     float minX = -1.1f, maxX = 1.1f, minY = -1.1f, maxY = 1.1f, minZ = -1.1f, maxZ = 1.1f;
+    float dx = (maxX - minX) / (float)resolutionX;
+    float dy = (maxY - minY) / (float)resolutionY;
+    float dz = (maxZ - minZ) / (float)resolutionZ;
     CFunction* function = new CSphereFunction(Eigen::Vector3f::Zero(), 1.0f);
 
     for (int i = 0; i < resolutionX; i++) {
