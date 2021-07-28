@@ -245,8 +245,10 @@ int main() {
         fout << "v " << point.x << ' ' << point.y << ' ' << point.z << " 2 0" << std::endl;*/
 
     std::vector<CPoint> source, target;
-    readPoints("../data/boat1.dat", source);
-    readPoints("../data/boat2.dat", target);
+    readPoints("../data/bunny1.dat", source);
+    readPoints("../data/bunny2.dat", target);
+
+    clock_t t0 = clock();
 
     ANNpointArray pointArray;
     ANNkd_tree* tree;
@@ -354,12 +356,14 @@ int main() {
         R *= Rt;
         t += tt;
 
-        std::cout << num << std::endl << A << std::endl << b << std::endl << R << std::endl << t << std::endl << std::endl;
+        //std::cout << num << std::endl << A << std::endl << b << std::endl << R << std::endl << t << std::endl << std::endl;
         //std::cout << R << std::endl << t << std::endl << std::endl;
     }
 
     annDeallocPts(pointArray);
     delete tree;
+
+    std::cout << clock() - t0 << std::endl;
 
     std::ofstream fout("../data/aligned.dat");
     for (const CPoint& pointTemp : source) {

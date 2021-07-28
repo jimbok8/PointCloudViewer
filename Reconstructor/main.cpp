@@ -35,6 +35,7 @@ int lastX = INT_MIN, lastY = INT_MIN, numCluster, display = 0, color = 0, cluste
 float factor = 1.0f;
 double epsilon = 0.3, sharpnessAngle = 25.0, edgeSensitivity = 0.0, neighborRadius = 3.0, maximumFacetLength = 1.0;
 bool press, *simplified, *upsampled, *smoothed, *reconstructed;
+glm::vec3 translate;
 glm::mat4 rotate(1.0f);
 std::vector<PointSet> origins, simplifies, upsamples, smoothes;
 std::vector<Mesh> reconstructs;
@@ -183,6 +184,13 @@ int main(int argc, char** argv) {
         }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNodeEx("Position options", true)) {
+            ImGui::SliderFloat("x", &translate.x, -10.0, 10.0);
+            ImGui::SliderFloat("y", &translate.y, -10.0, 10.0);
+            ImGui::SliderFloat("z", &translate.z, -10.0, 10.0);
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Cluster options", true)) {
             for (int i = 0; i < numCluster; i++)
                 ImGui::RadioButton(("Cluster " + std::to_string(i)).c_str(), &cluster, i);
@@ -235,7 +243,7 @@ int main(int argc, char** argv) {
 
         glm::vec3 lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         glm::mat4 modelMat, viewMat, projectionMat;
-        modelMat = glm::scale(rotate, glm::vec3(factor));
+        modelMat = glm::translate(glm::scale(rotate, glm::vec3(factor)), translate);
         viewMat = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         projectionMat = glm::perspective(PI / 4.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 

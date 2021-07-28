@@ -24,6 +24,8 @@
 #include "CResampleParameter.h"
 #include "CSmoothParameter.h"
 #include "CReconstructParameter.h"
+#include "CFunction.h"
+#include "CSphereFunction.h"
 
 class CPointSet {
 private:
@@ -42,6 +44,7 @@ private:
     Eigen::Vector3f calculateNormal(const std::vector<Eigen::Vector3f>& points, const int p0, const int p1, const int p2) const;
     CCandidate calculateCandidate(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const;
     void addEdge(const std::vector<Eigen::Vector3f>& points, std::map<std::pair<int, int>, Eigen::Vector3f>& edges, std::priority_queue<CCandidate>& heap, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const;
+    CMesh* marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ) const;
 
 public:
     CPointSet(const std::vector<CPoint>& points);

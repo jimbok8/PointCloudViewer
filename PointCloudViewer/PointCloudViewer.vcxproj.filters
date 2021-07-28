@@ -57,6 +57,12 @@
     <ClCompile Include="CTriangle.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CFunction.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CSphereFunction.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TransformHelper.h">
@@ -99,6 +105,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CTriangle.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CFunction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CSphereFunction.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

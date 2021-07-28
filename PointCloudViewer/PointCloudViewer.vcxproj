@@ -148,9 +148,11 @@
   <ItemGroup>
     <ClCompile Include="CBoundary.cpp" />
     <ClCompile Include="CCandidate.cpp" />
+    <ClCompile Include="CFunction.cpp" />
     <ClCompile Include="CMeshBoundary.cpp" />
     <ClCompile Include="CReconstructParameter.cpp" />
     <ClCompile Include="CSmoothParameter.cpp" />
+    <ClCompile Include="CSphereFunction.cpp" />
     <ClCompile Include="CTetrahedron.cpp" />
     <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="main.cpp" />
@@ -164,6 +166,7 @@
   <ItemGroup>
     <ClInclude Include="CBoundary.h" />
     <ClInclude Include="CCandidate.h" />
+    <ClInclude Include="CFunction.h" />
     <ClInclude Include="CMesh.h" />
     <ClInclude Include="CMeshBoundary.h" />
     <ClInclude Include="CPoint.h" />
@@ -173,6 +176,7 @@
     <ClInclude Include="CResampleParameter.h" />
     <ClInclude Include="CSimplifyParameter.h" />
     <ClInclude Include="CSmoothParameter.h" />
+    <ClInclude Include="CSphereFunction.h" />
     <ClInclude Include="CTetrahedron.h" />
     <ClInclude Include="CTriangle.h" />
     <ClInclude Include="TransformHelper.h" />
