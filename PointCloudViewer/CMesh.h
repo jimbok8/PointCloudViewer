@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <ANN/ANN.h>
 #include <glad/glad.h>
 
 #include "CPoint.h"
@@ -16,6 +17,7 @@ private:
     std::vector<unsigned int> m_indices;
     unsigned int m_vao;
     void calculateNormals();
+    void smooth();
 
 public:
     CMesh(const std::vector<CPoint>& points, const std::vector<unsigned int>& indices);

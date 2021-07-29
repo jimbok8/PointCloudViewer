@@ -468,8 +468,25 @@ void CPointSet::addEdge(const std::vector<Eigen::Vector3f>& points, std::map<std
         heap.push(candidate);
 }
 
-CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ) const {
-    const unsigned long long marching_cube_tris[256] = {
+Eigen::Vector3f CPointSet::interpolate(const CFunction* function, Eigen::Vector3f& p1, float f1, Eigen::Vector3f& p2, float f2) const {
+    while ((p1 - p2).squaredNorm() > 0.01f) {
+        Eigen::Vector3f p = (p1 + p2) * 0.5f;
+        float f = function->f(p);
+        if (f * f1 >= 0.0f) {
+            p1 = p;
+            f1 = f;
+        }
+        else {
+            p2 = p;
+            f2 = f;
+        }
+    }
+
+    return f1 < 0.0f ? p1 : p2;
+}
+
+CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ, const float epsilon) const {
+    const unsigned long long triangles[256] = {
         0ULL, 33793ULL, 36945ULL, 159668546ULL,
         18961ULL, 144771090ULL, 5851666ULL, 595283255635ULL,
         20913ULL, 67640146ULL, 193993474ULL, 655980856339ULL,
@@ -535,23 +552,103 @@ CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, co
         724147968595ULL, 1436604830452292ULL, 176259090ULL, 42001ULL,
         143955266ULL, 2385ULL, 18433ULL, 0ULL,
     };
+    const int edges[12][2] = {
+        {0, 1},
+        {2, 3},
+        {4, 5},
+        {6, 7},
+        {0, 2},
+        {1, 3},
+        {4, 6},
+        {5, 7},
+        {0, 4},
+        {1, 5},
+        {2, 6},
+        {3, 7}
+    };
 
-    float minX = -1.1f, maxX = 1.1f, minY = -1.1f, maxY = 1.1f, minZ = -1.1f, maxZ = 1.1f;
+    float minX, maxX, minY, maxY, minZ, maxZ;
+    minX = minY = minZ = FLT_MAX;
+    maxX = maxY = maxZ = -FLT_MAX;
+    for (const CPoint& point : m_points) {
+        minX = std::min(minX, point.m_position.x());
+        maxX = std::max(maxX, point.m_position.x());
+        minY = std::min(minY, point.m_position.y());
+        maxY = std::max(maxY, point.m_position.y());
+        minZ = std::min(minZ, point.m_position.z());
+        maxZ = std::max(maxZ, point.m_position.z());
+    }
+
+    //minX = minY = minZ = -1.05f;
+    //maxX = maxY = maxZ = 1.05f;
     float dx = (maxX - minX) / (float)resolutionX;
     float dy = (maxY - minY) / (float)resolutionY;
     float dz = (maxZ - minZ) / (float)resolutionZ;
-    CFunction* function = new CSphereFunction(Eigen::Vector3f::Zero(), 1.0f);
-
+    //CFunction* function = new CSphereFunction(Eigen::Vector3f(0.0f, 0.0f, 0.0f), 1.0f);
+    CFunction* function = new CIMLSFunction(m_points, epsilon);
+    std::vector<CPoint> points;
+    std::vector<unsigned int> indices;
+    
+    float x = minX;
     for (int i = 0; i < resolutionX; i++) {
+        float y = minY;
         for (int j = 0; j < resolutionY; j++) {
+            float z = minZ;
             for (int k = 0; k < resolutionZ; k++) {
+                Eigen::Vector3f vertices[8] = {
+                    Eigen::Vector3f(x, y, z),
+                    Eigen::Vector3f(x + dx, y, z),
+                    Eigen::Vector3f(x, y + dy, z),
+                    Eigen::Vector3f(x + dx, y + dy, z),
+                    Eigen::Vector3f(x, y, z + dz),
+                    Eigen::Vector3f(x + dx, y, z + dz),
+                    Eigen::Vector3f(x, y + dy, z + dz),
+                    Eigen::Vector3f(x + dx, y + dy, z + dz)
+                };
+                z += dz;
 
+                int t = 0;
+                std::vector<float> f(8);
+                bool flag = true;
+                for (int h = 7; h >= 0; h--) {
+                    f[h] = function->f(vertices[h]);
+                    if (!std::isnormal(f[h])) {
+                        flag = false;
+                        break;
+                    }
+                    t = (t << 1) + (f[h] < 0.0f);
+                }
+                if (!flag || t == 0 || t == 255)
+                    continue;
+
+                unsigned long long tmp = triangles[t];
+                int triangleNum = tmp & 0xF;
+                tmp >>= 4;
+                for (int h = 0; h < triangleNum * 3; h++) {
+                    int edgeIndex = tmp & 0xF;
+                    tmp >>= 4;
+
+                    int v1 = edges[edgeIndex][0];
+                    int v2 = edges[edgeIndex][1];
+
+                    float t1 = std::fabs(f[v1]);
+                    float t2 = std::fabs(f[v2]);
+
+                    points.push_back(CPoint((t1 * vertices[v1] + t2 * vertices[v2]) / (t1 + t2)));
+                    indices.push_back(indices.size());
+                }
             }
+            y += dy;
         }
+        x += dx;
     }
+
+    return new CMesh(points, indices);
 }
 
 CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
+    return marchingCubes(50, 50, 50, 0.5f);
+
     int iterationNumber = parameter.m_iterationNumber;
     float maximumFacetLength = parameter.m_maximumFacetLength;
 

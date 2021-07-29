@@ -7,8 +7,8 @@
 
 class CSphereFunction : public CFunction {
 private:
-    Eigen::Vector3f center;
-    float radius2;
+    Eigen::Vector3f m_center;
+    float m_radius2;
 
 public:
     CSphereFunction(const Eigen::Vector3f& center, const float radius);

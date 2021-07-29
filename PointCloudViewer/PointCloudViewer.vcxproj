@@ -149,6 +149,7 @@
     <ClCompile Include="CBoundary.cpp" />
     <ClCompile Include="CCandidate.cpp" />
     <ClCompile Include="CFunction.cpp" />
+    <ClCompile Include="CIMLSFunction.cpp" />
     <ClCompile Include="CMeshBoundary.cpp" />
     <ClCompile Include="CReconstructParameter.cpp" />
     <ClCompile Include="CSmoothParameter.cpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="CBoundary.h" />
     <ClInclude Include="CCandidate.h" />
     <ClInclude Include="CFunction.h" />
+    <ClInclude Include="CIMLSFunction.h" />
     <ClInclude Include="CMesh.h" />
     <ClInclude Include="CMeshBoundary.h" />
     <ClInclude Include="CPoint.h" />
