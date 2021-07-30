@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     std::vector<CPoint> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/pool.dat");
+    std::ifstream fin("../data/frame1.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     CSimplifyParameter simplifyParameter(0.3f);
     CResampleParameter resampleParameter(25.0f, 0.0f, 3.0f, 10000);
     CSmoothParameter smoothParameter(64, 30.0f);
-    CReconstructParameter reconstructParameter(4, 0.5f);
+    CReconstructParameter reconstructParameter(4, 0.5f, 0.5f, 0.5f);
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -215,6 +215,8 @@ int main(int argc, char** argv) {
         if (ImGui::TreeNodeEx("Reconstructing options", true)) {
             ImGui::InputInt("numberIteration", &reconstructParameter.m_iterationNumber);
             ImGui::InputFloat("maximumFacetLength", &reconstructParameter.m_maximumFacetLength);
+            ImGui::InputFloat("radius", &reconstructParameter.m_radius);
+            ImGui::InputFloat("epsilon", &reconstructParameter.m_epsilon);
             ImGui::TreePop();
         }
 
@@ -224,8 +226,8 @@ int main(int argc, char** argv) {
             resamples[cluster] = simplifies[cluster]->resample(resampleParameter);
         if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
             smoothes[cluster] = resamples[cluster]->smooth(smoothParameter);
-        if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
-            reconstructs[cluster] = smoothes[cluster]->reconstruct(reconstructParameter);
+        if (ImGui::Button("Reconstruct") /*&& smoothes[cluster] != nullptr*/)
+            reconstructs[cluster] = origins[cluster]->reconstruct(reconstructParameter);
 
         Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         Eigen::Matrix4f modelMat, viewMat, projectionMat;

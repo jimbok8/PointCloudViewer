@@ -485,7 +485,7 @@ Eigen::Vector3f CPointSet::interpolate(const CFunction* function, Eigen::Vector3
     return f1 < 0.0f ? p1 : p2;
 }
 
-CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ, const float epsilon) const {
+CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ, const float radius, const float epsilon) const {
     const unsigned long long triangles[256] = {
         0ULL, 33793ULL, 36945ULL, 159668546ULL,
         18961ULL, 144771090ULL, 5851666ULL, 595283255635ULL,
@@ -585,7 +585,7 @@ CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, co
     float dy = (maxY - minY) / (float)resolutionY;
     float dz = (maxZ - minZ) / (float)resolutionZ;
     //CFunction* function = new CSphereFunction(Eigen::Vector3f(0.0f, 0.0f, 0.0f), 1.0f);
-    CFunction* function = new CIMLSFunction(m_points, epsilon);
+    CFunction* function = new CIMLSFunction(m_points, radius, epsilon);
     std::vector<CPoint> points;
     std::vector<unsigned int> indices;
     
@@ -635,6 +635,7 @@ CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, co
                     float t2 = std::fabs(f[v2]);
 
                     points.push_back(CPoint((t1 * vertices[v1] + t2 * vertices[v2]) / (t1 + t2)));
+                    //points.push_back(CPoint(interpolate(function, vertices[v1], f[v1], vertices[v2], f[v2])));
                     indices.push_back(indices.size());
                 }
             }
@@ -643,11 +644,16 @@ CMesh* CPointSet::marchingCubes(const int resolutionX, const int resolutionY, co
         x += dx;
     }
 
+    delete function;
+
     return new CMesh(points, indices);
 }
 
 CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
-    return marchingCubes(50, 50, 50, 0.5f);
+    float radius_ = parameter.m_radius;
+    float epsilon = parameter.m_epsilon;
+    
+    return marchingCubes(50, 50, 50, radius_, epsilon);
 
     int iterationNumber = parameter.m_iterationNumber;
     float maximumFacetLength = parameter.m_maximumFacetLength;

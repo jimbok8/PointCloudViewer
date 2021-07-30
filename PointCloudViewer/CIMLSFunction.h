@@ -13,11 +13,13 @@
 class CIMLSFunction : public CFunction {
 private:
     std::vector<CPoint> m_points;
-    float m_epsilon2;
+    float m_radius2, m_epsilon2;
+    ANNpointArray m_pointArray;
+    ANNkd_tree* m_tree;
     std::vector<int> m_num;
 
 public:
-    CIMLSFunction(const std::vector<CPoint>& points, const float epsilon);
+    CIMLSFunction(const std::vector<CPoint>& points, const float radius, const float epsilon);
     ~CIMLSFunction();
     float f(const Eigen::Vector3f& x) const override;
 };

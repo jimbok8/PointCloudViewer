@@ -46,7 +46,7 @@ private:
     CCandidate calculateCandidate(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const;
     void addEdge(const std::vector<Eigen::Vector3f>& points, std::map<std::pair<int, int>, Eigen::Vector3f>& edges, std::priority_queue<CCandidate>& heap, const std::vector<float>& radii, const std::vector<bool>& flag, const std::vector<std::pair<int, int>>& candidates, const int source, const int target, const Eigen::Vector3f& normal) const;
     Eigen::Vector3f interpolate(const CFunction* function, Eigen::Vector3f& p1, float f1, Eigen::Vector3f& p2, float f2) const;
-    CMesh* marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ, const float epsilon) const;
+    CMesh* marchingCubes(const int resolutionX, const int resolutionY, const int resolutionZ, const float radius, const float epsilon) const;
 
 public:
     CPointSet(const std::vector<CPoint>& points);
