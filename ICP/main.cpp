@@ -28,7 +28,7 @@
 
 const int MAX_ITERATION = 50;
 const float EPSILON = 0.001f;
-const float DISTANCE_THRESHOLD = 0.01f;
+const float DISTANCE_THRESHOLD = 0.05f;
 const unsigned int WINDOW_WIDTH = 1920;
 const unsigned int WINDOW_HEIGHT = 1080;
 const float PI = std::acos(-1.0f);
@@ -245,8 +245,8 @@ int main() {
         fout << "v " << point.x << ' ' << point.y << ' ' << point.z << " 2 0" << std::endl;*/
 
     std::vector<CPoint> source, target;
-    readPoints("../data/bunny1.dat", source);
-    readPoints("../data/bunny2.dat", target);
+    readPoints("../data/qjhdl/hd0.dat", source);
+    readPoints("../data/qjhdl/hd49.dat", target);
 
     clock_t t0 = clock();
 
@@ -324,6 +324,7 @@ int main() {
         delete[] indices;
         delete[] distances;
 
+        std::cout << lossTemp << std::endl;
         if (std::fabs(loss - lossTemp) < EPSILON)
             break;
         else

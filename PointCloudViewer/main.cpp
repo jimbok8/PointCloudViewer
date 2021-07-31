@@ -77,6 +77,31 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
         glfwSetWindowShouldClose(window, true);
 }
 
+//static void save(const std::vector<CPointSet*>& sets, const std::string& filename) {
+//    int sum = 0;
+//    for (int i = 0; i < sets.size(); i++) {
+//        if (sets[i] == nullptr)
+//            return;
+//        sum += sets[i]->m_points.size();
+//    }
+//
+//    std::ofstream fout(filename);
+//    fout << "ply" << std::endl;
+//    fout << "format ascii 1.0" << std::endl;
+//    fout << "element vertex " << sum << std::endl;
+//    fout << "property float x" << std::endl;
+//    fout << "property float y" << std::endl;
+//    fout << "property float z" << std::endl;
+//    fout << "property float nx" << std::endl;
+//    fout << "property float ny" << std::endl;
+//    fout << "property float nz" << std::endl;
+//    fout << "end_header" << std::endl;
+//
+//    for (int i = 0; i < sets.size(); i++)
+//        for (const CPoint& point : sets[i]->m_points)
+//            fout << point.m_position.x() << ' ' << point.m_position.y() << ' ' << point.m_position.z() << ' ' << point.m_normal.x() << ' ' << point.m_normal.x() << ' ' << point.m_normal.x() << std::endl;
+//}
+
 int main(int argc, char** argv) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -114,7 +139,8 @@ int main(int argc, char** argv) {
     std::vector<CPoint> points;
     std::vector<int> clusters;
     std::string s;
-    std::ifstream fin("../data/frame1.dat");
+    std::fstream::sync_with_stdio(false);
+    std::ifstream fin("../data/qjhdl/hd.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -222,12 +248,17 @@ int main(int argc, char** argv) {
 
         if (ImGui::Button("Simplify"))
             simplifies[cluster] = origins[cluster]->simplify(simplifyParameter);
-        if (ImGui::Button("Resample") && simplifies[cluster] != nullptr)
-            resamples[cluster] = simplifies[cluster]->resample(resampleParameter);
-        if (ImGui::Button("Smooth") && resamples[cluster] != nullptr)
-            smoothes[cluster] = resamples[cluster]->smooth(smoothParameter);
-        if (ImGui::Button("Reconstruct") /*&& smoothes[cluster] != nullptr*/)
-            reconstructs[cluster] = origins[cluster]->reconstruct(reconstructParameter);
+        /*if (ImGui::Button("Resample") && simplifies[cluster] != nullptr)
+            resamples[cluster] = simplifies[cluster]->resample(resampleParameter);*/
+        if (ImGui::Button("Smooth") && simplifies[cluster] != nullptr)
+            smoothes[cluster] = simplifies[cluster]->smooth(smoothParameter);
+        if (ImGui::Button("Reconstruct") && smoothes[cluster] != nullptr)
+            reconstructs[cluster] = smoothes[cluster]->reconstruct(reconstructParameter);
+
+        //if (ImGui::Button("Save origin"))
+        //    save(origins, "origin.ply");
+        //if (ImGui::Button("Save processed"))
+        //    save(smoothes, "processed.ply");
 
         Eigen::Vector3f lightDirection(0.0f, 0.0f, -1.0f), cameraPosition(0.0f, 0.0f, 2.0f);
         Eigen::Matrix4f modelMat, viewMat, projectionMat;
