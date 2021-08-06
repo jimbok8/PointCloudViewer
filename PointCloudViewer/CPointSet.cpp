@@ -101,7 +101,7 @@ void CPointSet::calculateNormals(const int k) {
     std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> heap;
     int seed = rand() % m_points.size();
     dist[seed] = 0.0f;
-    heap.push(std::make_pair(dist[seed], 0));
+    heap.push(std::make_pair(dist[seed], seed));
     while (!heap.empty()) {
         int now = heap.top().second;
         heap.pop();
@@ -1006,7 +1006,7 @@ CMesh* CPointSet::reconstruct(const CReconstructParameter& parameter) const {
 }
 
 void CPointSet::render() const {
-    glPointSize(5);
+    //glPointSize(5);
     glBindVertexArray(m_vao);
     glDrawArrays(GL_POINTS, 0, m_points.size());
     glBindVertexArray(0);

@@ -2,8 +2,10 @@
 
 in vec3 originPosition;
 in vec3 vertexPosition;
+in vec3 originNormal;
 in vec3 vertexNormal;
-in vec3 originalNormal;
+in vec3 originCenter;
+in float originRadius;
 
 uniform float minX;
 uniform float maxX;
@@ -11,6 +13,9 @@ uniform vec3 lightDirection;
 uniform vec3 cameraPosition;
 
 void main() {
+    if (length(originPosition - originCenter) > originRadius)
+        discard;
+
     float x = (originPosition.x - minX) / (maxX - minX), r, g, b;
     if (x <= 0.5f) {
         r = 0.0f;
@@ -23,7 +28,8 @@ void main() {
         g = 1.0f - r;
     }
     vec3 color = vec3(r, g, b);
-    //vec3 color = 0.5 * (normalize(originalNormal) + vec3(1));
+
+    //vec3 color = 0.5 * (normalize(originNormal) + vec3(1));
     vec3 ambientColor = 0.1 * color;
     vec3 diffuseColor = 0.6 * color;
     vec3 specularColor = vec3(0.3);

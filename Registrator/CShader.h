@@ -18,7 +18,6 @@ public:
     CShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, const std::string& geometryShaderPath = "");
     ~CShader();
     void use() const;
-    void setFloat(const std::string& name, const float value) const;
     void setVector3D(const std::string& name, const Eigen::Vector3f& value) const;
     void setMatrix4D(const std::string& name, const Eigen::Matrix4f& value) const;
 };

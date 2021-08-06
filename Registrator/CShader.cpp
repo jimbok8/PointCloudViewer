@@ -82,10 +82,6 @@ void CShader::use() const {
     glUseProgram(m_program);
 }
 
-void CShader::setFloat(const std::string& name, const float value) const {
-    glUniform1f(glGetUniformLocation(m_program, name.c_str()), value);
-}
-
 void CShader::setVector3D(const std::string& name, const Eigen::Vector3f& value) const {
     glUniform3fv(glGetUniformLocation(m_program, name.c_str()), 1, value.data());
 }

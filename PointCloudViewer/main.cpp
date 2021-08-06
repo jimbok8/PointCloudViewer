@@ -36,7 +36,7 @@ const Eigen::Vector3f COLORS[] = {
 const int COLOR_SIZE = sizeof(COLORS) / sizeof(Eigen::Vector3f);
 
 static int g_lastX = INT_MIN, g_lastY = INT_MIN;
-static float g_factor = 1.0f;
+static float g_factor, g_factorDiff;
 static bool g_press = false;
 static Eigen::Matrix4f g_rotation = Eigen::Matrix4f::Identity();
 
@@ -68,8 +68,8 @@ static void cursorPosCallback(GLFWwindow* window, double x, double y) {
 }
 
 static void scrollCallback(GLFWwindow* window, double x, double y) {
-    g_factor += 0.01f * (float)y;
-    g_factor = std::max(g_factor, 0.01f);
+    g_factor += g_factorDiff * (float)y;
+    g_factor = std::max(g_factor, g_factorDiff);
 }
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     std::vector<int> clusters;
     std::string s;
     std::fstream::sync_with_stdio(false);
-    std::ifstream fin("../data/qjhdl/hd.dat");
+    std::ifstream fin("../data/qjhdl/hd_full.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
@@ -163,8 +163,17 @@ int main(int argc, char** argv) {
         getline(fin, s);
     }
 
+    g_factor = 1.0f / std::max(maxX - minX, std::max(maxY - minY, maxZ - minZ));
+    g_factorDiff = 0.1f * g_factor;
+
     int numCluster = *std::max_element(clusters.begin(), clusters.end()) + 1;
     Eigen::Vector3f center((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
+    minX -= center.x();
+    maxX -= center.x();
+    minY -= center.y();
+    maxY -= center.y();
+    minZ -= center.z();
+    maxZ -= center.z();
     std::vector<std::vector<CPoint>> vertices(numCluster);
     for (int i = 0; i < points.size(); i++) {
         points[i].m_position = points[i].m_position - center;
@@ -194,6 +203,12 @@ int main(int argc, char** argv) {
         ImGui::NewFrame();
 
         ImGui::Begin("Options");
+
+        if (ImGui::Button("Reset")) {
+            g_factor = 1.0f / std::max(maxX - minX, std::max(maxY - minY, maxZ - minZ));
+            g_factorDiff = 0.1f * g_factor;
+            g_rotation = Eigen::Matrix4f::Identity();
+        }
 
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNodeEx("Displaying options", true)) {
@@ -272,6 +287,8 @@ int main(int argc, char** argv) {
             normalShader.setMatrix4D("model", modelMat);
             normalShader.setMatrix4D("view", viewMat);
             normalShader.setMatrix4D("projection", projectionMat);
+            normalShader.setFloat("minX", minX);
+            normalShader.setFloat("maxX", maxX);
             normalShader.setVector3D("lightDirection", lightDirection);
             normalShader.setVector3D("cameraPosition", cameraPosition);
             for (int i = 0; i < numCluster; i++)
