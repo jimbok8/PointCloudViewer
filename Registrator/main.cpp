@@ -103,10 +103,9 @@ int main() {
 
     CShader normalShader("shader/NormalVertex.glsl", "shader/NormalFragment.glsl");
 
-    //CPointSet* last = new CPointSet("../data/qjhdl/hd.dat");
-    CPointSet* last = new CPointSet("../data/qjhdl/wrmlh/0thFrame.pcd");
+    CPointSet* last = new CPointSet("../data/qjhdl/wr/0thFrame.pcd");
 
-    CSimplifyParameter simplifyParameter(last->averageSpacing() * 4.0f);
+    CSimplifyParameter simplifyParameter(last->averageSpacing() * 2.0f);
     CSmoothParameter smoothParameter(64, 30.0f);
     CPointSet* simplified = last->simplify(simplifyParameter, true);
     CPointSet* smoothed = simplified->smooth(smoothParameter, true);
@@ -114,12 +113,12 @@ int main() {
     delete simplified;
     last = smoothed;
 
-    for (int i = 1; i < 424; i++) {
-        CPointSet* current = new CPointSet("../data/qjhdl/wrmlh/" + std::to_string(i) + "thFrame.pcd");
-        simplifyParameter.m_epsilon = current->averageSpacing() * 4.0f;
+    for (int i = 1; i < 640; i++) {
+        CPointSet* current = new CPointSet("../data/qjhdl/wr/" + std::to_string(i) + "thFrame.pcd");
+        simplifyParameter.m_epsilon = current->averageSpacing() * 2.0f;
         CPointSet* simplified = current->simplify(simplifyParameter, true);
         CPointSet* smoothed = simplified->smooth(smoothParameter, true);
-        CPointSet* combined = last->combine(smoothed, false);
+        CPointSet* combined = last->combine(current, false);
         delete last;
         delete current;
         delete simplified;
@@ -128,7 +127,7 @@ int main() {
     }
 
     last = last->simplify(simplifyParameter, false)->smooth(smoothParameter, false);
-    last->save("../data/qjhdl/wrmlh.dat");
+    last->save("../data/qjhdl/wr_temp.dat");
 
     g_factor = 1.0f / last->scale();
     g_factorDiff = 0.1f * g_factor;

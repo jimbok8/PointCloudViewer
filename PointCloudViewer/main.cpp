@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     std::vector<int> clusters;
     std::string s;
     std::fstream::sync_with_stdio(false);
-    std::ifstream fin("../data/qjhdl/hd_full.dat");
+    std::ifstream fin("../data/qjhdl/wr_temp.dat");
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;

@@ -10,7 +10,8 @@ CPointSet::CPointSet(const std::string& path) {
 
     float x, y, z, weight, r, g, b;
     while (fin >> x >> y >> z >> weight >> r >> g >> b) {
-        m_points.push_back(CPoint(Eigen::Vector3f(x, y, z)));
+        if (weight >= 500.0f)
+            m_points.push_back(CPoint(Eigen::Vector3f(x, y, z)));
         std::getline(fin, s);
     }
 
@@ -23,8 +24,10 @@ CPointSet::CPointSet(const std::vector<CPoint>& points, bool normalFlag) :
 }
 
 CPointSet::~CPointSet() {
-    annDeallocPts(m_pointArray);
-    delete m_tree;
+    if (m_points.size() > 0) {
+        annDeallocPts(m_pointArray);
+        delete m_tree;
+    }
 }
 
 void CPointSet::bind() {
@@ -79,7 +82,7 @@ void CPointSet::calculateNormals(const int k) {
     std::vector<std::vector<int>> neighbors = calculateKNeighbors(k);
     std::vector<std::vector<std::pair<int, float>>> graph(m_points.size());
     float spacing = averageSpacing();
-    spacing = (spacing * 5.0f) * (spacing * 5.0f);
+    spacing = (spacing * 3.0f) * (spacing * 3.0f);
     for (int i = 0; i < m_points.size(); i++) {
         Eigen::Vector3f avg(0.0f, 0.0f, 0.0f);
         int num = 0;
@@ -371,7 +374,7 @@ void CPointSet::save(const std::string & path) const {
         Eigen::Vector3f u = point.m_u * 0.01f;
         Eigen::Vector3f v = point.m_v * 0.01f;
 
-        if (isnormal(u.x()) && isnormal(u.y()) && isnormal(u.z()) && isnormal(v.x()) && isnormal(v.y()) && isnormal(v.z())) {
+        if (isnormal(position.x()) && isnormal(position.y()) && isnormal(position.z()) && isnormal(u.x()) && isnormal(u.y()) && isnormal(u.z()) && isnormal(v.x()) && isnormal(v.y()) && isnormal(v.z())) {
             fout << position.x() << ' ' << position.y() << ' ' << position.z() << ' ';
             fout << u.x() << ' ' << u.y() << ' ' << u.z() << ' ';
             fout << v.x() << ' ' << v.y() << ' ' << v.z() << std::endl;

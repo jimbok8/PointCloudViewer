@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{9c8eabfa-67cf-4b79-b15b-3bc741d97216}</ProjectGuid>
-    <RootNamespace>Test</RootNamespace>
+    <ProjectGuid>{4f9d2510-e2a4-4502-814f-9389e2c07797}</ProjectGuid>
+    <RootNamespace>Surfel</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -42,8 +42,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -116,13 +116,11 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Wajov\source\repos\PointCloudViewer\PointCloudViewer;C:\Users\Wajov\source\repos\PointCloudViewer\Reconstructor;C:\Users\Wajov\source\repos\PointCloudViewer\3rdparty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ann_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Users\Wajov\source\repos\PointCloudViewer\3rdparty\lib\ann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,24 +131,72 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Wajov\source\repos\PointCloudViewer\PointCloudViewer;C:\Users\Wajov\source\repos\PointCloudViewer\Reconstructor;C:\Users\Wajov\source\repos\PointCloudViewer\3rdparty\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Wajov\source\repos\PointCloudViewer\3rdparty\lib\ann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ann.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CImage.cpp" />
+    <ClCompile Include="CPoint.cpp" />
+    <ClCompile Include="CShader.cpp" />
+    <ClCompile Include="CSize.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Matrix.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="RendererInterface.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="StringTools.cpp" />
+    <ClCompile Include="SurfelCollection.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelGPFrameBuffer.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelGPRenderer.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_General\LightSource.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_General\LSrList.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Shader_SurfSplat.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Srf.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Warper.cpp" />
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\ZBuffer_SurfSplat.cpp" />
+    <ClCompile Include="SurfelInterface.cpp" />
+    <ClCompile Include="Transformer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PointCloudViewer\PointCloudViewer.vcxproj">
-      <Project>{e1b06ce4-3d34-457d-bbcd-9b0ff1b35005}</Project>
-    </ProjectReference>
+    <ClInclude Include="AssociatedSurfels.h" />
+    <ClInclude Include="CImage.h" />
+    <ClInclude Include="Common.h" />
+    <ClInclude Include="CPoint.h" />
+    <ClInclude Include="CShader.h" />
+    <ClInclude Include="CSize.h" />
+    <ClInclude Include="FrameBufferInterface.h" />
+    <ClInclude Include="Matrix.h" />
+    <ClInclude Include="MyDataTypes.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="RendererInterface.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="StringTools.h" />
+    <ClInclude Include="SurfelCollection.h" />
+    <ClInclude Include="SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders\BasePlane.h" />
+    <ClInclude Include="SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders\Shader.h" />
+    <ClInclude Include="SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders\ZBuffer.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelGPFrameBuffer.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelGPRenderer.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_General\LightSource.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_General\LSrList.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Shader_SurfSplat.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Srf.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Warper.h" />
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\ZBuffer_SurfSplat.h" />
+    <ClInclude Include="SurfelInterface.h" />
+    <ClInclude Include="Transformer.h" />
+    <ClInclude Include="Vector2D.h" />
+    <ClInclude Include="Vector3D.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\Fragment.glsl" />
+    <None Include="shader\Vertex.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

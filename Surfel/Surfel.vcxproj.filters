@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\SurfelGPRenderer">
+      <UniqueIdentifier>{78239e98-8846-4423-9ac9-04cfdcf41098}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\SurfelGPRenderer">
+      <UniqueIdentifier>{c2c20992-94ae-4459-a108-b27293dbe77f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\SurfelGPRenderer\OctreeRenderer_SurfSplat">
+      <UniqueIdentifier>{0b0a4d5c-80fb-490c-b458-bcf0bb8c4d55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\SurfelGPRenderer\SurfelPipeline_General">
+      <UniqueIdentifier>{173d9a03-a130-4930-a447-67bcd8ccfc7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\SurfelGPRenderer\SurfelPipeline_General">
+      <UniqueIdentifier>{c5780538-dfce-4f23-9cf2-0072aef4b188}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\SurfelGPRenderer\SurfelPipeline_SurfSplat">
+      <UniqueIdentifier>{3ae7ab76-93aa-4c17-a7eb-b371b9bba8a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\SurfelGPRenderer\SurfelPipeline_SurfSplat">
+      <UniqueIdentifier>{a7f52bc2-3c9c-4699-9776-74eee8103f46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders">
+      <UniqueIdentifier>{e3bf9c97-f7b0-4f71-bc1e-4b59d63cab9a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Matrix.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Object.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="RendererInterface.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="StringTools.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelCollection.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelInterface.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Transformer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelGPFrameBuffer.cpp">
+      <Filter>源文件\SurfelGPRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelGPRenderer.cpp">
+      <Filter>源文件\SurfelGPRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_General\LightSource.cpp">
+      <Filter>源文件\SurfelGPRenderer\SurfelPipeline_General</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_General\LSrList.cpp">
+      <Filter>源文件\SurfelGPRenderer\SurfelPipeline_General</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\ZBuffer_SurfSplat.cpp">
+      <Filter>源文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Warper.cpp">
+      <Filter>源文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Srf.cpp">
+      <Filter>源文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Shader_SurfSplat.cpp">
+      <Filter>源文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPoint.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CSize.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CShader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AssociatedSurfels.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameBufferInterface.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MyDataTypes.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Object.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RendererInterface.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="StringTools.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelCollection.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelInterface.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Transformer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector2D.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector3D.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelGPFrameBuffer.h">
+      <Filter>头文件\SurfelGPRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelGPRenderer.h">
+      <Filter>头文件\SurfelGPRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders\BasePlane.h">
+      <Filter>头文件\SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders\Shader.h">
+      <Filter>头文件\SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders\ZBuffer.h">
+      <Filter>头文件\SurfelGPRenderer\OctreeRenderer_SurfSplat\ConfigHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_General\LightSource.h">
+      <Filter>头文件\SurfelGPRenderer\SurfelPipeline_General</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_General\LSrList.h">
+      <Filter>头文件\SurfelGPRenderer\SurfelPipeline_General</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Shader_SurfSplat.h">
+      <Filter>头文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Srf.h">
+      <Filter>头文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\Warper.h">
+      <Filter>头文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfelGPRenderer\SurfelPipeline_SurfSplat\ZBuffer_SurfSplat.h">
+      <Filter>头文件\SurfelGPRenderer\SurfelPipeline_SurfSplat</Filter>
+    </ClInclude>
+    <ClInclude Include="CPoint.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CSize.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\Fragment.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\Vertex.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+</Project>

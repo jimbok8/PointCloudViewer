@@ -24,8 +24,8 @@ void main() {
     }
     vec3 color = vec3(r, g, b);
     //vec3 color = 0.5 * (normalize(originalNormal) + vec3(1));
-    vec3 ambientColor = 0.1 * color;
-    vec3 diffuseColor = 0.6 * color;
+    vec3 ambientColor = 1.0 * color;
+    vec3 diffuseColor = 2.0 * color;
     vec3 specularColor = vec3(0.3);
 
     vec3 ambient = ambientColor;
