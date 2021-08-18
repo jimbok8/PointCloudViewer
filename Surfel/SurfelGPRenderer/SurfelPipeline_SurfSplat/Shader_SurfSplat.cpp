@@ -119,7 +119,8 @@ Shader* ShdNew(Warper *wrp, FrameBufferInterface *frameBuffer, LSrList *lsl)
 	sqrt_2 = (float)sqrt(2.0f);
 
 	ShdEnable(shd, SHD_PRESHADESPLAT);
-	ShdDisable(shd, SHD_PERPIXELSHADING);
+	//ShdDisable(shd, SHD_PERPIXELSHADING);
+	ShdEnable(shd, SHD_PERPIXELSHADING);
 
 	return shd;
 }
@@ -224,7 +225,6 @@ void ShdShadeZBuffer(Shader *shd, int magfactor, int bbox[4], COLORREF backgroun
 				_shd_Id.b = _shd_Ir.b = zbufitem->c[2] * w_;
 
 				if ( (_shd_options & SHD_PERPIXELSHADING) && (_shd_options & SHD_LIGHTING) ) {
-
 					// re-normalize normal
 					_shd_nx_c = zbufitem->n[0];
 					_shd_ny_c = zbufitem->n[1];
@@ -440,7 +440,7 @@ static void shdLightSamplePhong_R()
 		}
 		// calculate the N*L dot product
 		ndotl = _shd_nx_c*Lx + _shd_ny_c*Ly + _shd_nz_c*Lz;
-		ndotl = (ndotl < 0 ? 0 : ndotl);
+		ndotl = (ndotl < 0 ? -ndotl : ndotl);
 
 		// calculate normalized reflection vector
 		Rx = 2*_shd_nx_c*ndotl - Lx; 
@@ -449,7 +449,7 @@ static void shdLightSamplePhong_R()
 
 		// calculate R*V dot product
 		rdotv = _shd_vx*Rx + _shd_vy*Ry + _shd_vz*Rz;
-		rdotv = (rdotv < 0 ? 0 : rdotv);
+		rdotv = (rdotv < 0 ? -rdotv : rdotv);
 
 		// calculate the phong shininess power
 		r = rdotv;
@@ -466,6 +466,9 @@ static void shdLightSamplePhong_R()
 		_shd_Ir.r += Ir * (t * _shd_Id.r + _shd_specularColor.r*r);
 		_shd_Ir.g += Ig * (t * _shd_Id.g + _shd_specularColor.g*r);
 		_shd_Ir.b += Ib * (t * _shd_Id.b + _shd_specularColor.b*r);
+
+		//std::cout << _shd_Id.r << ' ' << _shd_Id.g << ' ' << _shd_Id.b << std::endl;
+		//std::cout << _shd_kA << ' ' << _shd_kD << std::endl;
 
 		LLTNEXT;
 	}

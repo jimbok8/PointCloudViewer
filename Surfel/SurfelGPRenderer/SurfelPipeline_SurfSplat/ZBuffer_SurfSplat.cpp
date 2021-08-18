@@ -121,7 +121,8 @@ ZBuffer* ZBfNew (int xsize, int ysize, int LUTsize, FrameBufferInterface *frameB
 	}
 
 	zbf->splatFunction = ZBfSurfaceSplat;
-	ZbfEnable(zbf, ZBF_PERSURFELSHADING);
+	//ZbfEnable(zbf, ZBF_PERSURFELSHADING);
+	ZbfDisable(zbf, ZBF_PERSURFELSHADING);
 
 	return zbf;
 }
