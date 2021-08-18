@@ -26,6 +26,7 @@
 // licensing are not clear to you.
 //
 //#include "stdafx.h"
+#include <iostream>
 #include "../../Surfel/Matrix.h"
 #include "../../Surfel/MyDataTypes.h"
 #include "../../Surfel/Scene.h"
@@ -445,6 +446,12 @@ void SurfelGPRenderer::renderFrame (const int attributes, const bool allScene)
 				convertedTransformation[9]  *= -1.0f;
 				convertedTransformation[10] *= -1.0f;
 				convertedTransformation[11] *= -1.0f;
+
+				/*for (int i = 0; i < 4; i++) {
+					for (int j = 0; j < 4; j++)
+						std::cout << convertedTransformation[i * 4 + j] << ' ';
+					std::cout << std::endl;
+				}*/
 
 				SrfSetTrafo (surfelContext, convertedTransformation);
 

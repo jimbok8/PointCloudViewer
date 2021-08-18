@@ -308,7 +308,7 @@ std::list<Object*> &Scene::getObjectList()
 
 void Scene::setActiveObject (const std::string &activeName, const bool doRenderFrame) {
 
-	Object *object;
+	Object *object = nullptr;
 	bool   found;
 
 	found  = false;

@@ -41,6 +41,7 @@
 // Standard Includes
 //#include "stdafx.h"
 #include <malloc.h>
+#include <iostream>
 
 // Project Includes
 #include "Shader_SurfSplat.h"

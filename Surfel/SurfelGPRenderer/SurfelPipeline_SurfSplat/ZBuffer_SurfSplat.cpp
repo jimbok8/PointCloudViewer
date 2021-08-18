@@ -52,6 +52,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <math.h>
+#include <iostream>
 
 #include "../../MyDataTypes.h"
 #include "../../Vector3D.h"
@@ -198,7 +199,7 @@ void ZBfPrepareForWriting(ZBuffer *zbf)
 	zbf_LUTsize = zbf->LUTsize;
 	zbf_cutoffRadius_2 = zbf->cutoffRadius*zbf->cutoffRadius;
 	_zbf_cutoffRadius_2 = 1/(zbf_cutoffRadius_2);
-	zbf_constThreshold = zbf->constThreshold;
+	_zbf_cutoffRadius_2 = zbf->constThreshold;
 	zbf_distThreshold = zbf->distThreshold;
 	zbf_angleThreshold = zbf->angleTrheshold;
 }
@@ -567,7 +568,7 @@ int ZBfSurfaceSplat(ZBuffer *zbf, float x0, float y0, float z, float n[3], Surfe
 
 	// write splat data to framebuffer if required
 	attributes = zbf->frameBuffer->getAttributes();
-
+	
 	if(attributes & FrameBufferInterface::ALL_SPLATS && clip == false) {
 		zbf->frameBuffer->setSplatInfo(surfel, x0, y0, z, a, b_2, c, bbox);
 	}

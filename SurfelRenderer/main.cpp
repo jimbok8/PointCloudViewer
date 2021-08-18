@@ -154,8 +154,8 @@ int main() {
     g_renderer->setViewPortSize(CSize(WINDOW_WIDTH, WINDOW_HEIGHT));
     g_renderer->setTwoSidedNormalsEnabled(true);
     g_renderer->setShadowsEnabled(false);
-    //g_renderer->setShadingEnabled(true);
-    //g_renderer->setLightDirection(Vector3D(0.0f, 0.0f, -1.0f));
+    g_renderer->setShadingEnabled(true);
+    g_renderer->setLightDirection(Vector3D(0.0f, 0.0f, -1.0f));
     g_renderer->setBackgroundColor(RGB(25, 25, 25));
 
     glfwInit();
