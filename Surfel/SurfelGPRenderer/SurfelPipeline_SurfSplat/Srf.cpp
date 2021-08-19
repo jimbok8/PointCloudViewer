@@ -48,6 +48,7 @@
 //-------------------------------------------------------------------------
 //#include "stdafx.h"
 #include <malloc.h>
+#include <iostream>
 
 #include "../../FrameBufferInterface.h"
 #include "../OctreeRenderer_SurfSplat/ConfigHeaders/Shader.h"

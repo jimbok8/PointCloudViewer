@@ -8,6 +8,7 @@
 	_b = (float)(_c & 0x000000ff)
 
 #include "CSurfel.h"
+#include "MyDataTypes.h"
 
 // export the z-buffer item structure for fast external access to 
 // data stored in the z-buffer
@@ -19,15 +20,12 @@ typedef struct _SrfZBufItem
 	float w;				// accumulated weights
 	float n[3];				// accumulated normal
 	float c[3];				// accumulated color values
-	unsigned char alpha;	// composite alpha value
 
 	float kA;
 	float kD;
 	float kS;
 	unsigned char shininess;
 	unsigned int specularColor;
-
-	void* userData;			// pointer to user data
 } SrfZBufItem;
 
 typedef struct _ZBuffer
@@ -38,15 +36,8 @@ typedef struct _ZBuffer
 	SrfZBufItem* cleardata;
 	long bufsize;
 
-	int options;
-
-	//ZBfSplatSurfel splatFunction;
-
 	// surface splatting parameters
 	float cutoffRadius;
-	float covthreshold;			// hack for compatibility with srf.c/.h, this variable is not used here.
-	int viscontrib;				// dito
-	float recscaling;			// dito
 
 	// blending thresholds used for surface splatting
 	float constThreshold;
@@ -56,19 +47,7 @@ typedef struct _ZBuffer
 	// reconstruction filter table used for surface splatting
 	int LUTsize;
 	float* filterLUT;
-
-	// the extended frame buffer which holds data for
-	// interactive manipulation
-	//FrameBufferInterface* frameBuffer;
 } ZBuffer;
-
-// Global variables
-int zbf_rows, zbf_cols;
-float zbf_x_cur, zbf_y_cur;
-int zbf_i_cur;
-int zbf_xsize, zbf_ysize;
-int zbf_material;
-SrfZBufItem* zbf_buf;
 
 // Static variables
 static float zbf_constThreshold;
@@ -79,7 +58,6 @@ static int zbf_LUTsize;
 static float zbf_cutoffRadius_2;
 static float _zbf_cutoffRadius_2;
 
-
 // Extern variables
 extern float _shd_nx_c, _shd_ny_c, _shd_nz_c;
 extern float _shd_vx, _shd_vy, _shd_vz;
@@ -89,6 +67,12 @@ extern unsigned char _shd_shininess;
 extern MyDataTypes::RGBTriple _shd_specularColor;
 extern MyDataTypes::RGBTriple _shd_Id;
 extern MyDataTypes::RGBTriple _shd_Ir;
+
+extern int zbf_rows, zbf_cols;
+extern float zbf_x_cur, zbf_y_cur;
+extern int zbf_i_cur;
+extern int zbf_xsize, zbf_ysize;
+extern SrfZBufItem* zbf_buf;
 
 //-------------------------------------------------------------------------
 // Prepare for writing
@@ -102,19 +86,9 @@ static void zbfPrepareForWriting(ZBuffer* zbf)
 	zbf_LUTsize = zbf->LUTsize;
 	zbf_cutoffRadius_2 = zbf->cutoffRadius * zbf->cutoffRadius;
 	_zbf_cutoffRadius_2 = 1 / (zbf_cutoffRadius_2);
-	_zbf_cutoffRadius_2 = zbf->constThreshold;
+	zbf_constThreshold = zbf->constThreshold;
 	zbf_distThreshold = zbf->distThreshold;
 	zbf_angleThreshold = zbf->angleTrheshold;
-}
-
-//-------------------------------------------------------------------------
-// Prepare for reading
-//-------------------------------------------------------------------------
-void zbfPrepareForReading(ZBuffer* zbf)
-{
-	zbf_buf = zbf->buf;
-	zbf_xsize = zbf->xsize;
-	zbf_ysize = zbf->ysize;
 }
 
 //-------------------------------------------------------------------------
@@ -157,9 +131,6 @@ static int zbfSurfaceSplat(ZBuffer* zbf, float x0, float y0, float z, float n[3]
 	Vector3D normal;
 	float _radius;
 
-	int attributes;
-	int adjustedBufferHeight;  // = buffer height - 1            
-
 	bool clip;
 
 	//scale z buffer according to surfel radius
@@ -198,17 +169,10 @@ static int zbfSurfaceSplat(ZBuffer* zbf, float x0, float y0, float z, float n[3]
 	ndotv = n[0] * V_x + n[1] * V_y + n[2] * V_z;
 
 	if (ndotv < 0) {
-		//if (zbf->options & ZBF_BIDINORMALS) {
-		//	// two-sided lighting, flip normals
-		//	n[0] = -n[0];
-		//	n[1] = -n[1];
-		//	n[2] = -n[2];
-			ndotv = -ndotv;
-		//}
-		//else {
-		//	// backface culling
-		//	return 0;
-		//}
+		n[0] = -n[0];
+		n[1] = -n[1];
+		n[2] = -n[2];
+		ndotv = -ndotv;
 	}
 
 	// project screen x,y unit vectors along V onto ST plane
@@ -349,33 +313,6 @@ static int zbfSurfaceSplat(ZBuffer* zbf, float x0, float y0, float z, float n[3]
 	color = surfel->getDiffuseColor();
 	UNPACK_FLOAT_RGB(r_comp, g_comp, b_comp, color);
 
-	// modify color if surfel is selected and visualization of the selection is enabled
-	/*if (surfel->isFlagOn(SurfelInterface::EMPHASISE) == true &&
-		(zbf->options & ZBF_VISUALIZESELECTION)) {
-		if (surfel->isFlagOn(SurfelInterface::SELECTED1) == true) {
-			r_comp *= 0.5f;
-			g_comp *= 0.5f;
-			b_comp = b_comp * 0.5f + 122.0f;
-		}
-		if (surfel->isFlagOn(SurfelInterface::SELECTED2) == true) {
-			r_comp = r_comp * 0.5f + 122.0f;
-			g_comp *= 0.5f;
-			b_comp *= 0.5f;
-		}
-		if (surfel->isFlagOn(SurfelInterface::SELECTED3) == true) {
-			r_comp *= 0.5f;
-			g_comp = g_comp * 0.5f + 122.0f;
-			b_comp *= 0.5f;
-		}
-	}*/
-
-	// if in shadow adjust color values
-	/*if ((zbf->options & ZBF_SHADOWS) && (surfel->isFlagOn(SurfelInterface::COVERED) == true)) {
-		r_comp = 0.0f;
-		g_comp = 0.0f;
-		b_comp = 0.0f;
-	}*/
-
 	// get material attributes. in case we do per pixel shading, these attributes are written to 
 	// the zBuffer, too.
 	_shd_kA = 0.5f;
@@ -384,39 +321,6 @@ static int zbfSurfaceSplat(ZBuffer* zbf, float x0, float y0, float z, float n[3]
 	_shd_shininess = (unsigned char)0;
 	specularColor = surfel->getSpecularColor();
 	UNPACK_FLOAT_RGB(_shd_specularColor.r, _shd_specularColor.g, _shd_specularColor.b, specularColor);
-
-	//if (zbf->options & ZBF_PERSURFELSHADING) {
-		// perform per surfel shading
-		// setup variables for shading
-		_shd_nx_c = n[0];
-		_shd_ny_c = n[1];
-		_shd_nz_c = n[2];
-
-		_shd_vx = V_x;
-		_shd_vy = V_y;
-		_shd_vz = V_z;
-		_shd_ndotv = ndotv;
-
-		_shd_Id.r = _shd_Ir.r = r_comp;
-		_shd_Id.g = _shd_Ir.g = g_comp;
-		_shd_Id.b = _shd_Ir.b = b_comp;
-
-		// perform shading
-#ifdef _USE_NORMAL_
-		if (_shd_options & SHD_LIGHTING)
-		{
-			_shd_Ir.r = 0.f;
-			_shd_Ir.g = 0.f;
-			_shd_Ir.b = 0.f;
-			_shd_lightsample();
-		}
-#endif
-
-		// re-assign colors for further processing
-		r_comp = _shd_Ir.r;
-		g_comp = _shd_Ir.g;
-		b_comp = _shd_Ir.b;
-	//}
 
 	// step 2: rasterize the EWA ellipse
 
@@ -459,145 +363,96 @@ static int zbfSurfaceSplat(ZBuffer* zbf, float x0, float y0, float z, float n[3]
 	x = ((float)Xmin + 0.5f) - x0;
 	ddq = 2 * a;
 
-	// write splat data to framebuffer if required
-	//attributes = zbf->frameBuffer->getAttributes();
-
-	/*if (attributes & FrameBufferInterface::ALL_SPLATS && clip == false) {
-		zbf->frameBuffer->setSplatInfo(surfel, x0, y0, z, a, b_2, c, bbox);
-	}*/
-
 	// *********************
 	// ellipse rasterization
 	// *********************
-	//if ((attributes & FrameBufferInterface::PERPIXEL_C_Z_N_W) || (attributes & FrameBufferInterface::PERPIXEL_SURFELLISTS))
-	//{
+	for (Y = Ymin; Y <= Ymax; Y++)
+	{
+		// finite differences for ellipse rasterization
+		y = ((float)Y + 0.5f) - y0;
+		dq = a * (2 * x + 1) + b * y;
+		q = (c * y + b * x) * y + a * x * x;
 
-		adjustedBufferHeight = zbf->ysize - 1;
+		// init z value
+		z_cur = z_start;
 
-		for (Y = Ymin; Y <= Ymax; Y++)
+		for (X = Xmin; X <= Xmax; X++)
 		{
-			// finite differences for ellipse rasterization
-			y = ((float)Y + 0.5f) - y0;
-			dq = a * (2 * x + 1) + b * y;
-			q = (c * y + b * x) * y + a * x * x;
+			i = X + zbf_xsize * Y;
 
-			// init z value
-			z_cur = z_start;
-
-			for (X = Xmin; X <= Xmax; X++)
+			if (q < zbf_cutoffRadius_2)
 			{
-				i = X + zbf_xsize * Y;
 
-				if (q < zbf_cutoffRadius_2)
+				// compare z-ranges
+				if (!(zbf->buf[i].zMax < zMin || zMax < zbf->buf[i].zMin))
 				{
+					// z-ranges overlap
+					// increase z-range if necessary
+					zbf->buf[i].zMin = (zMin < zbf->buf[i].zMin) ? zMin : zbf->buf[i].zMin;
+					zbf->buf[i].zMax = (zMax > zbf->buf[i].zMax) ? zMax : zbf->buf[i].zMax;
 
-					// compare z-ranges
-					if (!(zbf->buf[i].zMax < zMin || zMax < zbf->buf[i].zMin))
-					{
-						// z-ranges overlap
-						// increase z-range if necessary
-						zbf->buf[i].zMin = (zMin < zbf->buf[i].zMin) ? zMin : zbf->buf[i].zMin;
-						zbf->buf[i].zMax = (zMax > zbf->buf[i].zMax) ? zMax : zbf->buf[i].zMax;
+					// merge contributions
+					w = zbf_filterLUT[(int)(q * _zbf_cutoffRadius_2 * zbf_LUTsize)] * det_;
 
-						// merge contributions
-						w = zbf_filterLUT[(int)(q * _zbf_cutoffRadius_2 * zbf_LUTsize)] * det_;
+					zbf->buf[i].w += w;
 
-						zbf->buf[i].w += w;
+					// add color contribution
+					zbf->buf[i].c[0] += r_comp * w;
+					zbf->buf[i].c[1] += g_comp * w;
+					zbf->buf[i].c[2] += b_comp * w;
 
-						// add color contribution
-						zbf->buf[i].c[0] += r_comp * w;
-						zbf->buf[i].c[1] += g_comp * w;
-						zbf->buf[i].c[2] += b_comp * w;
+					// normals
+					zbf->buf[i].n[0] += n[0] * w;
+					zbf->buf[i].n[1] += n[1] * w;
+					zbf->buf[i].n[2] += n[2] * w;
 
-						// normals
-						zbf->buf[i].n[0] += n[0] * w;
-						zbf->buf[i].n[1] += n[1] * w;
-						zbf->buf[i].n[2] += n[2] * w;
+					// z 
+					zbf->buf[i].z += z_cur * w;
 
-						// z 
-						zbf->buf[i].z += z_cur * w;
-
-						// per pixel shading
-						//if (!(zbf->options & ZBF_PERSURFELSHADING)) {
-							zbf->buf[i].kA = _shd_kA;
-							zbf->buf[i].kD = _shd_kD;
-							zbf->buf[i].kS = _shd_kS;
-							zbf->buf[i].shininess = _shd_shininess;
-							zbf->buf[i].specularColor = specularColor;
-						//}
-
-						// *******************************
-						// write additional per pixel data
-						// *******************************
-
-						/*if (attributes & FrameBufferInterface::PERPIXEL_SURFELLISTS) {
-							zbf->frameBuffer->addVisibleSurfel(X, adjustedBufferHeight - Y, surfel);
-						}
-						if (attributes & FrameBufferInterface::PERPIXEL_SURFEL) {
-							zbf->buf[i].userData = surfel;
-						}
-						if (attributes & FrameBufferInterface::PERPIXEL_OBJECTPOINTER) {
-							zbf->frameBuffer->setObjectAtPixel(X, adjustedBufferHeight - Y, object);
-						}*/
-
-					}
-					else if (zMin < zbf->buf[i].zMin) {
-						// new z-range does not overlap previous one, but is closer to viewer
-						// update z-range
-						zbf->buf[i].zMin = zMin;
-						zbf->buf[i].zMax = zMax;
-
-						// new frontmost contribution
-						w = zbf_filterLUT[(int)(q * _zbf_cutoffRadius_2 * zbf_LUTsize)] * det_;
-						zbf->buf[i].w = w;
-
-						// add color contribution
-						zbf->buf[i].c[0] = r_comp * w;
-						zbf->buf[i].c[1] = g_comp * w;
-						zbf->buf[i].c[2] = b_comp * w;
-
-						zbf->buf[i].n[0] = n[0] * w;
-						zbf->buf[i].n[1] = n[1] * w;
-						zbf->buf[i].n[2] = n[2] * w;
-
-						// update z value
-						zbf->buf[i].z = z_cur * w;
-
-						// per pixel shading
-						//if (!(zbf->options & ZBF_PERSURFELSHADING)) {
-							zbf->buf[i].kA = _shd_kA;
-							zbf->buf[i].kD = _shd_kD;
-							zbf->buf[i].kS = _shd_kS;
-							zbf->buf[i].shininess = _shd_shininess;
-							zbf->buf[i].specularColor = specularColor;
-						//}
-
-						// **************************************
-						// reset per pixel data, write new values
-						// **************************************
-
-						/*if (attributes & FrameBufferInterface::PERPIXEL_SURFELLISTS) {
-							zbf->frameBuffer->resetPosition(X, adjustedBufferHeight - Y);
-							zbf->frameBuffer->addVisibleSurfel(X, adjustedBufferHeight - Y, surfel);
-						}
-						if (attributes & FrameBufferInterface::PERPIXEL_SURFEL) {
-							zbf->buf[i].userData = surfel;
-						}
-						if (attributes & FrameBufferInterface::PERPIXEL_OBJECTPOINTER) {
-							zbf->frameBuffer->setObjectAtPixel(X, adjustedBufferHeight - Y, object);
-						}*/
-
-					}
+					// per pixel shading
+					zbf->buf[i].kA = _shd_kA;
+					zbf->buf[i].kD = _shd_kD;
+					zbf->buf[i].kS = _shd_kS;
+					zbf->buf[i].shininess = _shd_shininess;
+					zbf->buf[i].specularColor = specularColor;
 				}
+				else if (zMin < zbf->buf[i].zMin) {
+					// new z-range does not overlap previous one, but is closer to viewer
+					// update z-range
+					zbf->buf[i].zMin = zMin;
+					zbf->buf[i].zMax = zMax;
 
-				q += dq;
-				dq += ddq;
+					// new frontmost contribution
+					w = zbf_filterLUT[(int)(q * _zbf_cutoffRadius_2 * zbf_LUTsize)] * det_;
+					zbf->buf[i].w = w;
 
-				z_cur += dzc_dxs;
+					// add color contribution
+					zbf->buf[i].c[0] = r_comp * w;
+					zbf->buf[i].c[1] = g_comp * w;
+					zbf->buf[i].c[2] = b_comp * w;
+
+					zbf->buf[i].n[0] = n[0] * w;
+					zbf->buf[i].n[1] = n[1] * w;
+					zbf->buf[i].n[2] = n[2] * w;
+
+					// update z value
+					zbf->buf[i].z = z_cur * w;
+
+					// per pixel shading
+					zbf->buf[i].kA = _shd_kA;
+					zbf->buf[i].kD = _shd_kD;
+					zbf->buf[i].kS = _shd_kS;
+					zbf->buf[i].shininess = _shd_shininess;
+					zbf->buf[i].specularColor = specularColor;
+				}
 			}
-			z_start += dzc_dys;
+			q += dq;
+			dq += ddq;
+
+			z_cur += dzc_dxs;
 		}
-	//}
+		z_start += dzc_dys;
+	}
 
 	return 0;
 }

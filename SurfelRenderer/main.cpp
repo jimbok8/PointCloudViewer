@@ -6,11 +6,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "CPoint.h"
 #include "CShader.h"
 #include "Matrix.h"
-#include "Scene.h"
-#include "SurfelGPRenderer/SurfelGPRenderer.h"
+#include "CRenderer.h"
 
 const unsigned int WINDOW_WIDTH = 1024;
 const unsigned int WINDOW_HEIGHT = 768;
@@ -18,10 +16,10 @@ const unsigned int WINDOW_HEIGHT = 768;
 static int g_leftLastX, g_leftLastY, g_rightLastX, g_rightLastY;
 static float g_factor = 1.0f;
 static bool g_leftPress = false, g_rightPress = false;
-static SurfelGPRenderer* g_renderer;
+static CRenderer* g_renderer;
 
 static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-    g_renderer->setViewPortSize(CSize(width, height));
+    //g_renderer->setViewPortSize(CSize(width, height));
     glViewport(0, 0, width, height);
 }
 
@@ -47,11 +45,11 @@ static void cursorPosCallback(GLFWwindow* window, double x, double y) {
         Eigen::Vector3f b = Eigen::Vector3f((float)newX / WINDOW_WIDTH - 0.5f, 0.5f - (float)newY / WINDOW_HEIGHT, 1.0f).normalized();
         Eigen::Vector3f axis = a.cross(b);
         float angle = a.dot(b);
-        Scene::getInstance()->rotate(5.0f * std::acos(angle), axis.x(), axis.y(), axis.z());
+        g_renderer->rotate(5.0f * std::acos(angle), axis.x(), axis.y(), axis.z());
     }
     if (g_rightPress && g_rightLastX != INT_MIN && g_rightLastY != INT_MIN) {
         Eigen::Vector3f v((float)(newX - g_rightLastX), (float)(g_rightLastY - newY), 0.0f);
-        Scene::getInstance()->translate(v.x(), v.y(), v.z());
+        g_renderer->translate(v.x(), v.y(), v.z());
     }
 
     g_leftLastX = g_rightLastX = newX;
@@ -62,7 +60,7 @@ static void scrollCallback(GLFWwindow* window, double x, double y) {
     float newFactor = g_factor + 0.1f * (float)y;
     newFactor = std::max(newFactor, 0.10f);
     float ratio = newFactor / g_factor;
-    Scene::getInstance()->scale(ratio, ratio, ratio);
+    g_renderer->scale(ratio, ratio, ratio);
     g_factor = newFactor;
 }
 
@@ -77,48 +75,31 @@ int main() {
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
     maxX = maxY = maxZ = -FLT_MAX;
-    std::vector<CPoint> points;
+    std::vector<Vector3D> positions, us, vs;
     while (fin >> x >> y >> z >> ux >> uy >> uz >> vx >> vy >> vz) {
-        Eigen::Vector3f position(x, y, z), u(ux, uy, uz), v(vx, vy, vz);
+        Vector3D position(x, y, z), u(ux, uy, uz), v(vx, vy, vz);
         position *= 100.0f;
         u *= 100.0f;
         v *= 100.0f;
-        points.push_back(CPoint(position, u, v));
-        minX = std::min(minX, position.x());
-        maxX = std::max(maxX, position.x());
-        minY = std::min(minY, position.y());
-        maxY = std::max(maxY, position.y());
-        minZ = std::min(minZ, position.z());
-        maxZ = std::max(maxZ, position.z());
+        positions.push_back(position);
+        us.push_back(u);
+        vs.push_back(v);
+        minX = std::min(minX, position[0]);
+        maxX = std::max(maxX, position[0]);
+        minY = std::min(minY, position[1]);
+        maxY = std::max(maxY, position[1]);
+        minZ = std::min(minZ, position[2]);
+        maxZ = std::max(maxZ, position[2]);
     }
-    float centerX = (minX + maxX) * 0.5f, centerY = (minY + maxY) * 0.5f, centerZ = (minZ + maxZ) * 0.5f;
+    Vector3D center((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, (minZ + maxZ) * 0.5f);
 
-    Scene* scene = Scene::getInstance();
-	scene->reset(true, false);
-    scene->setAutoDelete(true);
-    MyDataTypes::CameraPosition cameraPosition;
-    MtrUtil::MtrUnity4x4f(cameraPosition.scaleTranslationMatrix);
-    cameraPosition.scaleTranslationMatrix[14] = -1000.0f;
-    MtrUtil::MtrUnity4x4f(cameraPosition.rotationMatrix);
-    scene->setCameraPosition(cameraPosition, false);
+    std::vector<CSurfel> surfels;
+    for (int i = 0; i < positions.size(); i++) {
+        Vector3D position = positions[i] - center;
+        Vector3D normal = Vector3D::crossProduct(us[i], vs[i]);
+        normal.normalize();
 
-    Object* object = new Object();
-    object->setName("object", false);
-    object->setScale(1.0f, 1.0f, 1.0f, false);
-    object->setPosition(0.0f, 0.0f, 0.0f, false);
-    object->setRotationMatrix(cameraPosition.rotationMatrix, false);
-
-    SurfelCollection* surfelCollection = object->getSurfelCollection();
-    SurfelInterface::PropertyDescriptor actualPropertyDescriptor = surfelCollection->getPropertyDescriptor();
-    surfelCollection->reserve(surfelCollection->capacity() + points.size());
-
-    for (const CPoint& point : points) {
-        SurfelInterface* surfel = surfelCollection->addSurfel(false);
-        Vector3D position(point.m_position.x() - centerX, point.m_position.y() - centerY, point.m_position.z() - centerZ);
-        Eigen::Vector3f normalTemp = point.m_u.cross(point.m_v).normalized();
-        Vector3D normal(normalTemp.x(), normalTemp.y(), normalTemp.z());
-
-        float f = (point.m_position.x() - minX) / (maxX - minX), r, g, b;
+        float f = (positions[i][0] - minX) / (maxX - minX), r, g, b;
         if (f <= 0.5f) {
             r = 0.0f;
             g = f * 2.0f;
@@ -132,31 +113,9 @@ int main() {
         COLORREF diffuseColor = RGB((unsigned char)(r * 255), (unsigned char)(g * 255), (unsigned char)(b * 255));
         COLORREF specularColor = RGB(205, 205, 205);
 
-        scene->setSurfelPosition(surfel, position, false);
-        scene->setSurfelNormal(surfel, normal, false);
-        scene->setSurfelRadius(surfel, point.m_u.norm() * 0.5, false);
-        scene->setSurfelDiffuseColor(surfel, diffuseColor, false);
-        scene->setSurfelSpecularColor(surfel, specularColor, false);
-        scene->setSurfelFlags(surfel, 0, false);
+        surfels.push_back(CSurfel(position, normal, us[i].getLength() * 0.5f, diffuseColor, specularColor));
     }
-
-    scene->addObject(object, true, true);
-
-    g_renderer = new SurfelGPRenderer();
-    g_renderer->initialize(true);
-
-    MyDataTypes::ViewFrustum viewFrustum;
-    viewFrustum.fieldOfView = 30.0f;
-    viewFrustum.aspectRatio = 1.0f;
-    viewFrustum.nearPlane = 10.0f;
-    viewFrustum.farPlane = 100000.0f;
-    //g_renderer->setViewFrustum(viewFrustum);
-    g_renderer->setViewPortSize(CSize(WINDOW_WIDTH, WINDOW_HEIGHT));
-    g_renderer->setTwoSidedNormalsEnabled(true);
-    g_renderer->setShadowsEnabled(false);
-    g_renderer->setShadingEnabled(true);
-    g_renderer->setLightDirection(Vector3D(0.0f, 0.0f, -1.0f));
-    g_renderer->setBackgroundColor(RGB(25, 25, 25));
+    g_renderer = new CRenderer(surfels, WINDOW_WIDTH, WINDOW_HEIGHT, RGB(25, 25, 25));
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -233,14 +192,8 @@ int main() {
         //glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        MyDataTypes::TransformationMatrix16f sceneViewMatrix;
-        Scene::getInstance()->getTransformationMatrix(sceneViewMatrix);
-        g_renderer->setSceneView(sceneViewMatrix);
-
-        g_renderer->renderFrame();
-        CImage* image = g_renderer->getRenderedImage();
-        
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->getWidth(), image->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, image->getData());
+        g_renderer->render();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_renderer->getWidth(), g_renderer->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, g_renderer->getImage());
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -260,6 +213,8 @@ int main() {
     }
 
     glfwTerminate();
+
+    delete g_renderer;
 
     return 0;
 }

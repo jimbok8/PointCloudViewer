@@ -577,7 +577,7 @@ int ZBfSurfaceSplat(ZBuffer *zbf, float x0, float y0, float z, float n[3], Surfe
 	// *********************
 	// ellipse rasterization
 	// *********************
-	if( (attributes & FrameBufferInterface::PERPIXEL_C_Z_N_W) || (attributes & FrameBufferInterface::PERPIXEL_SURFELLISTS) ) 
+	if( (attributes & FrameBufferInterface::PERPIXEL_C_Z_N_W) || (attributes & FrameBufferInterface::PERPIXEL_SURFELLISTS) )
 	{
 
 		adjustedBufferHeight = zbf->ysize - 1;

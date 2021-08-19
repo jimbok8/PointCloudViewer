@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 #include <vector>
+#include <iostream>
 
 #include "CSurfel.h"
 #include "MyDataTypes.h"
@@ -17,19 +18,23 @@ private:
     unsigned char* m_image;
     COLORREF m_backgroundColor;
     std::vector<CSurfel> m_surfels;
-    MyDataTypes::TransformationMatrix16f m_sceneViewMatrix;
+    MyDataTypes::CameraPosition m_cameraPosition;
 
-    Warper* warper;						// the warper
-    ZBuffer* zBuffer;					// the z-buffer
-    Shader* shader;						// the shader
+    Warper* warper;
+    ZBuffer* zBuffer;
+    Shader* shader;
 
-    unsigned char* getPixelPtr(const int x, const int y) const;
     void init();
 
 public:
-    CRenderer(const int width, const int height, const COLORREF backgroundColor);
+    CRenderer(const std::vector<CSurfel>& surfels, const int width, const int height, const COLORREF backgroundColor);
     ~CRenderer();
+    int getWidth() const;
+    int getHeight() const;
     const unsigned char* getImage() const;
+    void scale(const float dScaleX, const float dScaleY, const float dScaleZ);
+    void translate(const float dx, const float dy, const float dz);
+    void rotate(const float dAngle, const float x, const float y, const float z);
     void render();
 };
 

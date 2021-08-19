@@ -426,6 +426,9 @@ static void shdLightSamplePhong_R()
 		Lx = LSRGET_X(lsr);
 		Ly = LSRGET_Y(lsr);
 		Lz = LSRGET_Z(lsr);
+		std::cout << Ir << ' ' << Ig << ' ' << Ib << std::endl;
+		std::cout << Ar << ' ' << Ag << ' ' << Ab << std::endl;
+		std::cout << Lx << ' ' << Ly << ' ' << Lz << std::endl << std::endl;
 		switch(lsr->type)
 		{
 		case LSR_POINT:
