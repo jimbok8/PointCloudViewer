@@ -24,9 +24,6 @@
     <ClCompile Include="CSurfel.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Matrix.cpp" />
-    <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="Warper.cpp" />
-    <ClCompile Include="ZBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\Fragment.glsl" />
@@ -39,7 +36,6 @@
     <ClInclude Include="CSurfel.h" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="MyDataTypes.h" />
-    <ClInclude Include="Shader.h" />
     <ClInclude Include="Vector3D.h" />
     <ClInclude Include="Warper.h" />
     <ClInclude Include="ZBuffer.h" />

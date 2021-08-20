@@ -40,24 +40,6 @@
  */
 namespace MyDataTypes {
 
-
-	/**
-	 * Symmetric matrix of the form:
-	 * <pre>
-	 * /     \
-	 * | a b |
-	 * | b c |
-	 * \     /
-	 * </pre>
-	 */
-	typedef struct symmetricMatrix {
-
-		float a;
-		float b;
-		float c;
-
-	} SymmetricMatrix3f;
-
 	/**
 	 * A 4x4 transformation matrix which stores <code>float</code> values.
 	 */
@@ -73,26 +55,6 @@ namespace MyDataTypes {
 	} CameraPosition;
 
 	/**
-	 * A struct containing U, V coordinates of a texture.
-	 */
-	typedef struct textureCoordinate {
-		float u,
-              v;
-	} TextureCoordinate;
-
-	/**
-	 * A <code>struct</code> which defines the view frustum.
-	 */
-	typedef struct viewFrustum {
-
-		float fieldOfView,
-		      aspectRatio,
-		      nearPlane,
-			  farPlane;
-
-	} ViewFrustum;
-
-	/**
 	 * A struct storing the red <code>r</code>, green <code>g</code> and blue <code>b</code>
 	 * color components as <code>float</code> values.
 	 */
@@ -101,31 +63,6 @@ namespace MyDataTypes {
 		float g;
 		float b;
 	} RGBTriple;
-
-	/**
-	 * A struct which stores the minimum and maximum coordinates of a bounding cube.
-	 */
-	typedef struct boundingCube {
-
-		int minX,
-			maxX,
-			minY,
-			maxY,
-			minZ,
-			maxZ;
-
-	} BoundingCube;
-	
-	/**
-	 * Splat data structure describing splat primitives that were rendered to the frame buffer.
-	 * The renderer writes this data in an implementation specific fashion.
-	 */	
-	typedef struct splat {
-		float z;
-		float conic[4];				// conic matrix for rasterizing the ellipse
-		int bbox[4];				// bounding box for rasterizing the ellipse (pixel coordinates)
-	} Splat;
-
 };
 
 
