@@ -205,47 +205,47 @@ void MtrMultVector3DHom (const MyDataTypes::TransformationMatrix16f M, const Vec
 
 
 
-void MtrLocalToGlobalTransform (Vector3D position, Vector3D normal, float *matrix) {
+//void MtrLocalToGlobalTransform (Vector3D position, Vector3D normal, float *matrix) {
+//
+//	Vector3D u, v;
+//	normal.getTwoOrthogonals (u, v);
+//	u.normalize();
+//	v.normalize();
+//
+//	// column 1
+//	matrix[0]  = u[0];
+//	matrix[1]  = u[1];
+//	matrix[2]  = u[2];
+//	matrix[3]  = 0.0f;
+//
+//	// column 2
+//	matrix[4]  = v[0];
+//	matrix[5]  = v[1];
+//	matrix[6]  = v[2];
+//	matrix[7]  = 0.0f;
+//
+//	// column 3
+//	matrix[8]  = normal[0];
+//	matrix[9]  = normal[1];
+//	matrix[10] = normal[2];
+//	matrix[11] = 0.0f;
+//
+//	// column 4
+//	matrix[12] = position[0];
+//	matrix[13] = position[1];
+//	matrix[14] = position[2];
+//	matrix[15] = 1.0f;
+//}
 
-	Vector3D u, v;
-	normal.getTwoOrthogonals (u, v);
-	u.normalize();
-	v.normalize();
 
-	// column 1
-	matrix[0]  = u[0];
-	matrix[1]  = u[1];
-	matrix[2]  = u[2];
-	matrix[3]  = 0.0f;
-
-	// column 2
-	matrix[4]  = v[0];
-	matrix[5]  = v[1];
-	matrix[6]  = v[2];
-	matrix[7]  = 0.0f;
-
-	// column 3
-	matrix[8]  = normal[0];
-	matrix[9]  = normal[1];
-	matrix[10] = normal[2];
-	matrix[11] = 0.0f;
-
-	// column 4
-	matrix[12] = position[0];
-	matrix[13] = position[1];
-	matrix[14] = position[2];
-	matrix[15] = 1.0f;
-}
-
-
-void MtrGlobalToLocalTransform (Vector3D position, Vector3D normal, float *matrix) {
-
-	float temp[16];
-
-	MtrLocalToGlobalTransform (position, normal, temp);
-	MtrInverse4x4f (temp, matrix);
-
-}
+//void MtrGlobalToLocalTransform (Vector3D position, Vector3D normal, float *matrix) {
+//
+//	float temp[16];
+//
+//	MtrLocalToGlobalTransform (position, normal, temp);
+//	MtrInverse4x4f (temp, matrix);
+//
+//}
 
 
 

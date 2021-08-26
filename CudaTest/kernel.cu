@@ -1,147 +1,160 @@
-﻿
-#include "cuda_runtime.h"
+﻿#include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 #include <iostream>
 
-cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size, int* sum);
-
-__global__ void addKernel(int size, int* c, const int* a, const int* b, int* sum)
-{
-    int i = threadIdx.x;
+__global__ void addKernel(int size, const int* a, int* sum, int* lock) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     while (i < size) {
-        c[i] = a[i] + b[i];
-        atomicAdd(sum, a[i]);
-        i += (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
+        __syncthreads();
+        bool success = false;
+        while (!success) {
+            if (atomicExch(lock, 1) == 0) {
+                *sum += a[i];
+                __threadfence_system();
+                atomicExch(lock, 0);
+                success = true;
+            }
+        }
+        //__syncthreads();
+        //bool loopFlag = false;
+        //do {
+        //    if ((loopFlag = atomicCAS(lock, 0, 1) == 0)) {
+        //        *sum += a[i];
+        //    }
+        //    __threadfence_system(); //Or __threadfence_block(), __threadfence_system() according to your Memory Fence demand
+        //    if (loopFlag)
+        //        atomicExch(lock, 0);
+        //} while (!loopFlag);
+
+        i += gridDim.x * blockDim.x;
+    }
+}
+
+__global__ void maxKernel(int size, int* a, int* locks) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    while (i < size) {
+        if (i > 0) {
+            //__syncthreads();
+            bool loopFlag = false;
+            do {
+                if ((loopFlag = atomicCAS(&locks[i - 1], 0, 1) == 0)) {
+                    a[i - 1] = i > a[i - 1] ? i : a[i - 1];
+                }
+                __threadfence_system(); //Or __threadfence_block(), __threadfence_system() according to your Memory Fence demand
+                if (loopFlag)
+                    atomicExch(&locks[i - 1], 0);
+            } while (!loopFlag);
+            //__syncthreads();
+            //bool success = false;
+            //while (!success) {
+            //    if (atomicExch(&lock[i - 1], 1) == 0) {
+            //        a[i - 1] = i > a[i - 1] ? i : a[i - 1];
+            //        __threadfence_system();
+            //        atomicExch(&lock[i - 1], 0);
+            //        success = true;
+            //    }
+            //}
+        }
+
+        if (true) {
+            //__syncthreads();
+            bool loopFlag = false;
+            do {
+                if ((loopFlag = atomicCAS(&locks[i], 0, 1) == 0)) {
+                    a[i] = i > a[i] ? i : a[i];
+                }
+                __threadfence_system(); //Or __threadfence_block(), __threadfence_system() according to your Memory Fence demand
+                if (loopFlag)
+                    atomicExch(&locks[i], 0);
+            } while (!loopFlag);
+            //__syncthreads();
+            //bool success = false;
+            //while (!success) {
+            //    if (atomicExch(&lock[i], 1) == 0) {
+            //        a[i] = i > a[i] ? i : a[i];
+            //        __threadfence_system();
+            //        atomicExch(&lock[i], 0);
+            //        success = true;
+            //    }
+            //}
+        }
+
+        if (i < size - 1) {
+            //__syncthreads();
+            bool loopFlag = false;
+            do {
+                if ((loopFlag = atomicCAS(&locks[i + 1], 0, 1) == 0)) {
+                    a[i + 1] = i > a[i + 1] ? i : a[i + 1];
+                }
+                __threadfence_system(); //Or __threadfence_block(), __threadfence_system() according to your Memory Fence demand
+                if (loopFlag)
+                    atomicExch(&locks[i + 1], 0);
+            } while (!loopFlag);
+            //__syncthreads();
+            //bool success = false;
+            //while (!success) {
+            //    if (atomicExch(&lock[i + 1], 1) == 0) {
+            //        a[i + 1] = i > a[i + 1] ? i : a[i + 1];
+            //        __threadfence_system();
+            //        atomicExch(&lock[i + 1], 0);
+            //        success = true;
+            //    }
+            //}
+        }
+
+        i += gridDim.x * blockDim.x;
     }
 }
 
 int main()
 {
-    const int arraySize = 10000;
-    int* sum = new int;
-    int* a = new int[arraySize];
-    int* b = new int[arraySize];
-    int* c = new int[arraySize];
+    int size = 10000;
+    int* a;
+    int* aGPU;
+    //int* sum;
+    //int* sumGPU;
+    int* locks;
 
-    for (int i = 0; i < arraySize; i++) {
-        a[i] = i + 1;
-        b[i] = (i + 1) * 10;
-    }
+    a = new int[size];
+    //for (int i = 0; i < size; i++)
+    //    a[i] = i + 1;
+    //cudaMalloc(&aGPU, sizeof(int) * size);
+    //cudaMemcpy(aGPU, a, sizeof(int) * size, cudaMemcpyHostToDevice);
 
-    // Add vectors in parallel.
-    cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize, sum);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addWithCuda failed!");
-        return 1;
-    }
+    cudaMalloc(&aGPU, sizeof(int) * size);
+    cudaMemset(aGPU, 0, sizeof(int) * size);
 
-    //printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",
-        //c[0], c[1], c[2], c[3], c[4]);
+    //sum = new int;
+    //cudaMalloc(&sumGPU, sizeof(int));
+    //cudaMemset(sumGPU, 0, sizeof(int));
 
-    std::cout << *sum << std::endl;
-    for (int i = 0; i < arraySize; i++)
-        std::cout << c[i] << ' ';
-    std::cout << std::endl;
+    //cudaMalloc(&lock, sizeof(int));
+    //cudaMemset(lock, 0, sizeof(int));
 
-    // cudaDeviceReset must be called before exiting in order for profiling and
-    // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceReset failed!");
-        return 1;
-    }
+    cudaMalloc(&locks, sizeof(int) * size);
+    cudaMemset(locks, 0, sizeof(int) * size);
+
+    maxKernel<<<64, 64>>>(size, aGPU, locks);
+    cudaError_t cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+
+    //cudaMemcpy(sum, sumGPU, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(a, aGPU, sizeof(int) * size, cudaMemcpyDeviceToHost);
+    for (int i = 0; i < size - 1; i++)
+        std::cout << a[i] << ' ';
+    std::cout << a[size - 1] << std::endl;
+
+    //std::cout << *sum << std::endl;
+
+    delete[] a;
+    //delete sum;
+    cudaFree(aGPU);
+    //cudaFree(sumGPU);
+    cudaFree(locks);
 
     return 0;
-}
-
-// Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size, int* sum)
-{
-    int *dev_sum;
-    int *dev_a = 0;
-    int *dev_b = 0;
-    int *dev_c = 0;
-    cudaError_t cudaStatus;
-
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    cudaStatus = cudaSetDevice(0);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-        goto Error;
-    }
-
-    // Allocate GPU buffers for three vectors (two input, one output)    .
-    cudaStatus = cudaMalloc((void**)&dev_sum, sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
-
-    cudaStatus = cudaMalloc((void**)&dev_c, size * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
-
-    cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
-
-    cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
-
-    // Copy input vectors from host memory to GPU buffers.
-    cudaStatus = cudaMemset(dev_sum, 0, sizeof(int));
-
-    cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-    cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-    // Launch a kernel on the GPU with one thread for each element.
-    addKernel<<<1, 1000>>>(size, dev_c, dev_a, dev_b, dev_sum);
-
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        goto Error;
-    }
-    
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-        goto Error;
-    }
-
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(sum, dev_sum, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-Error:
-    cudaFree(dev_c);
-    cudaFree(dev_a);
-    cudaFree(dev_b);
-    
-    return cudaStatus;
 }

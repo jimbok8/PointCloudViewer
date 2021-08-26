@@ -43,7 +43,7 @@ CRenderer::CRenderer(const std::vector<CSurfel>& surfels, const int width, const
     warper = (Warper*)malloc(sizeof(Warper));
     // set the default view frustum (similar to gluPerspective): angle of field of view, 
     // aspect ratio, near and far clipping planes
-    wrpSetFrustum(30.f, 1.f, 10.f, 100000.f);
+    setFrustum(30.f, 1.f, 10.f, 100000.f);
 }
 
 CRenderer::~CRenderer() {
@@ -113,7 +113,7 @@ void CRenderer::render() {
     convertedTransformation[10] *= -1.0f;
     convertedTransformation[11] *= -1.0f;
 
-    wrpSetTrafo(convertedTransformation);
+    setTrafo(convertedTransformation);
 
 	double t1 = glfwGetTime();
 
@@ -126,7 +126,7 @@ void CRenderer::render() {
 
 	double t2 = glfwGetTime();
 
-    shdShadeZBuffer(1, bbox);
+    shadeZBuffer(1, bbox);
 
 	double t3 = glfwGetTime();
 	std::cout << t1 - t0 << ' ' << t2 - t1 << ' ' << t3 - t2 << std::endl;
@@ -510,7 +510,7 @@ int CRenderer::zbfSurfaceSplat(int width, int height, ZBuffer* zBuffer, float x0
 	return 0;
 }
 
-void CRenderer::wrpSetFrustum(float fofv, float aspect, float nearplane, float farplane)
+void CRenderer::setFrustum(float fofv, float aspect, float nearplane, float farplane)
 {
 	float t, b, l, r;
 	float s;
@@ -548,7 +548,7 @@ void CRenderer::wrpSetFrustum(float fofv, float aspect, float nearplane, float f
 // note: the matrix trafo[] is expected to be row major ordered, i.e.
 // row 1 has indices 0..3, row 2 has indices 4..7, etc.
 //-------------------------------------------------------------------------
-void CRenderer::wrpSetTrafo(const float trafo[16])
+void CRenderer::setTrafo(const float trafo[16])
 {
 	float s;
 	float r[9], t[3];
@@ -725,7 +725,7 @@ void CRenderer::setColor(const int x, const int y, const COLORREF newPixelColor)
 // directional light sources, it produces exactly the same results as cube
 // maps.
 //-------------------------------------------------------------------------
-void CRenderer::shdLightSamplePhong_R(float _shd_kA, float _shd_kD, float _shd_kS, unsigned char _shd_shininess, MyDataTypes::RGBTriple _shd_specularColor)
+void CRenderer::lightSamplePhongR(float _shd_kA, float _shd_kD, float _shd_kS, unsigned char _shd_shininess, MyDataTypes::RGBTriple _shd_specularColor)
 {
 	float Ir, Ig, Ib;
 	float Ar, Ag, Ab;
@@ -779,7 +779,7 @@ void CRenderer::shdLightSamplePhong_R(float _shd_kA, float _shd_kD, float _shd_k
 //-------------------------------------------------------------------------
 // Shade the samples in the z-buffer of a warper
 //-------------------------------------------------------------------------
-void CRenderer::shdShadeZBuffer(int magfactor, int bbox[4])
+void CRenderer::shadeZBuffer(int magfactor, int bbox[4])
 {
 	int zbf_rows, zbf_cols;
 	float zbf_x_cur, zbf_y_cur;
@@ -864,7 +864,7 @@ void CRenderer::shdShadeZBuffer(int magfactor, int bbox[4])
 				_shd_Ir.r = 0.f;
 				_shd_Ir.g = 0.f;
 				_shd_Ir.b = 0.f;
-				shdLightSamplePhong_R(_shd_kA, _shd_kD, _shd_kS, _shd_shininess, _shd_specularColor);
+				lightSamplePhongR(_shd_kA, _shd_kD, _shd_kS, _shd_shininess, _shd_specularColor);
 
 				// clamp color intensities
 				if (_shd_Ir.r > 255.0) _shd_Ir.r = 255.0;

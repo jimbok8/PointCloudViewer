@@ -1,13 +1,12 @@
 #include <algorithm>
 #include <fstream>
-#include <Windows.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "CShader.h"
-#include "Matrix.h"
 #include "CRenderer.h"
+#include "MatrixHelper.h"
 
 const unsigned int WINDOW_WIDTH = 1024;
 const unsigned int WINDOW_HEIGHT = 768;
@@ -94,7 +93,7 @@ int main() {
     }
     Vector3D center((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, (minZ + maxZ) * 0.5f);
 
-    std::vector<CSurfel> surfels;
+    Surfel* surfels = new Surfel[positions.size()];
     for (int i = 0; i < positions.size(); i++) {
         Vector3D position = positions[i] - center;
         Vector3D normal = Vector3D::crossProduct(us[i], vs[i]);
@@ -111,12 +110,15 @@ int main() {
             r = (f - 0.5f) * 2.0f;
             g = 1.0f - r;
         }
-        COLORREF diffuseColor = RGB((unsigned char)(r * 255), (unsigned char)(g * 255), (unsigned char)(b * 255));
-        COLORREF specularColor = RGB(205, 205, 205);
 
-        surfels.push_back(CSurfel(position, normal, us[i].getLength() * 0.5f, diffuseColor, specularColor));
+        surfels[i].position = position;
+        surfels[i].normal = normal;
+        surfels[i].radius = us[i].getLength();
+        surfels[i].r = r * 255.0f;
+        surfels[i].g = g * 255.0f;
+        surfels[i].b = b * 255.0f;
     }
-    g_renderer = new CRenderer(surfels, WINDOW_WIDTH, WINDOW_HEIGHT, RGB(25, 25, 25));
+    g_renderer = new CRenderer(positions.size(), surfels, WINDOW_WIDTH, WINDOW_HEIGHT, 25, 25, 25, true);
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -215,6 +217,7 @@ int main() {
 
     glfwTerminate();
 
+    delete[] surfels;
     delete g_renderer;
 
     return 0;

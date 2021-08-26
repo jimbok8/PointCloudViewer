@@ -25,6 +25,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SurfelRenderer", "SurfelRen
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaTest", "CudaTest\CudaTest.vcxproj", "{95CEA1D3-C5BC-411C-817B-DAAD9540A7D1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SurfelRendererGPU", "SurfelRendererGPU\SurfelRendererGPU.vcxproj", "{9864A594-94CF-4C5D-BD4D-1A019083133D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -211,6 +213,20 @@ Global
 		{95CEA1D3-C5BC-411C-817B-DAAD9540A7D1}.ReleaseOpenMP|x64.Build.0 = Release|x64
 		{95CEA1D3-C5BC-411C-817B-DAAD9540A7D1}.ReleaseOpenMP|x86.ActiveCfg = Debug|x64
 		{95CEA1D3-C5BC-411C-817B-DAAD9540A7D1}.ReleaseOpenMP|x86.Build.0 = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.Debug|x64.ActiveCfg = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.Debug|x64.Build.0 = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.Debug|x86.ActiveCfg = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.DebugOpenMP|x64.ActiveCfg = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.DebugOpenMP|x64.Build.0 = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.DebugOpenMP|x86.ActiveCfg = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.DebugOpenMP|x86.Build.0 = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.Release|x64.ActiveCfg = Release|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.Release|x64.Build.0 = Release|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.Release|x86.ActiveCfg = Release|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.ReleaseOpenMP|x64.ActiveCfg = Release|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.ReleaseOpenMP|x64.Build.0 = Release|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.ReleaseOpenMP|x86.ActiveCfg = Debug|x64
+		{9864A594-94CF-4C5D-BD4D-1A019083133D}.ReleaseOpenMP|x86.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -33,10 +33,10 @@ private:
     unsigned char* getPixelPtr(const int x, const int y);
     void setColor(const int x, const int y, const COLORREF newPixelColor);
 
-    void wrpSetFrustum(float fofv, float aspect, float nearplane, float farplane);
-    void wrpSetTrafo(const float trafo[16]);
-    void shdLightSamplePhong_R(float _shd_kA, float _shd_kD, float _shd_kS, unsigned char _shd_shininess, MyDataTypes::RGBTriple _shd_specularColor);
-    void shdShadeZBuffer(int magfactor, int bbox[4]);
+    void setFrustum(float fofv, float aspect, float nearplane, float farplane);
+    void setTrafo(const float trafo[16]);
+    void lightSamplePhongR(float _shd_kA, float _shd_kD, float _shd_kS, unsigned char _shd_shininess, MyDataTypes::RGBTriple _shd_specularColor);
+    void shadeZBuffer(int magfactor, int bbox[4]);
 
     static void unpackRGB(float& r, float& g, float& b, COLORREF color);
     static int zbfSurfaceSplat(int width, int height, ZBuffer* zBuffer, float x0, float y0, float z, float n[3], CSurfel* surfel, int l, float scale_stoo, float scale_otoc, float vp_sx, float vp_sy, float vp_tx, float vp_ty, int bbox[4]);

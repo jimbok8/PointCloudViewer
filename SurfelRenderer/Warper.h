@@ -1,8 +1,6 @@
 #ifndef WARPER_H
 #define WARPER_H
 
-#include "ZBuffer.h"
-
 typedef struct _Transformation
 {
 	float rotation[9];			// model-view rotation

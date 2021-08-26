@@ -78,8 +78,8 @@ void MtrMultVector3f (const float *m, const float *v, float *r);
 void MtrMultVector3D (const MyDataTypes::TransformationMatrix16f M, const Vector3D v, Vector3D *r);
 void MtrMultVector3DHom (const MyDataTypes::TransformationMatrix16f M, const Vector3D v, Vector3D *r);
 
-void MtrLocalToGlobalTransform (Vector3D position, Vector3D normal, float *matrix);
-void MtrGlobalToLocalTransform (Vector3D position, Vector3D normal, float *matrix);
+//void MtrLocalToGlobalTransform (Vector3D position, Vector3D normal, float *matrix);
+//void MtrGlobalToLocalTransform (Vector3D position, Vector3D normal, float *matrix);
 
 
 
