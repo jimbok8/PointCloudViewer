@@ -32,7 +32,6 @@ void surfaceSplatStep1(int width, int height, ZBufferProperty* zBufferProperty, 
 	float q, dq, ddq;
 
 	float dzc_dxs, dzc_dys;			// dzc/dxs, dzc/dys derivatives
-	float z_start, z_cur;			// z values to be rasterized
 
 	int i;
 
@@ -220,12 +219,9 @@ void surfaceSplatStep1(int width, int height, ZBufferProperty* zBufferProperty, 
 	surfel->zMax = zMax;
 	surfel->x0 = x0;
 	surfel->y0 = y0;
-	surfel->z = z;
 	surfel->a = a;
 	surfel->b = b;
 	surfel->c = c;
-	surfel->dzc_dxs = dzc_dxs;
-	surfel->dzc_dys = dzc_dys;
 	surfel->det_ = det_;
 	surfel->n[0] = n[0];
 	surfel->n[1] = n[1];
@@ -255,9 +251,6 @@ void surfaceSplatStep1(int width, int height, ZBufferProperty* zBufferProperty, 
 			return;
 	}
 
-	// z value in the lower left corner of the rasterized area
-	z_start = z - dzc_dxs * (x0 - ((float)Xmin + 0.5f)) - dzc_dys * (y0 - ((float)Ymin + 0.5f));
-
 	x = ((float)Xmin + 0.5f) - x0;
 	ddq = 2 * a;
 
@@ -270,9 +263,6 @@ void surfaceSplatStep1(int width, int height, ZBufferProperty* zBufferProperty, 
 		y = ((float)Y + 0.5f) - y0;
 		dq = a * (2 * x + 1) + b * y;
 		q = (c * y + b * x) * y + a * x * x;
-
-		// init z value
-		z_cur = z_start;
 
 		for (X = Xmin; X <= Xmax; X++)
 		{
@@ -289,10 +279,7 @@ void surfaceSplatStep1(int width, int height, ZBufferProperty* zBufferProperty, 
 			}
 			q += dq;
 			dq += ddq;
-
-			z_cur += dzc_dxs;
 		}
-		z_start += dzc_dys;
 	}
 }
 
@@ -302,16 +289,13 @@ void surfaceSplatStep2(int width, int height, ZBufferProperty* zBufferProperty, 
 	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
 	float _zbf_cutoffRadius_2 = 1 / (zbf_cutoffRadius_2);
 
-	float x0, y0, z, a, b, c, n[3];			// the EWA ellipse coefficients
+	float x0, y0, a, b, c, n[3];			// the EWA ellipse coefficients
 
 	int Xmin, Xmax, Ymin, Ymax;	// bounding box of the ellipse to be rasterized
 	float zMin;
 	int X, Y, i;
 	float x, y;
 	float q, dq, ddq;
-
-	float dzc_dxs, dzc_dys;			// dzc/dxs, dzc/dys derivatives
-	float z_start, z_cur;			// z values to be rasterized
 
 	float r_comp, g_comp, b_comp;
 
@@ -326,12 +310,9 @@ void surfaceSplatStep2(int width, int height, ZBufferProperty* zBufferProperty, 
 	zMin = surfel->zMin;
 	x0 = surfel->x0;
 	y0 = surfel->y0;
-	z = surfel->z;
 	a = surfel->a;
 	b = surfel->b;
 	c = surfel->c;
-	dzc_dxs = surfel->dzc_dxs;
-	dzc_dys = surfel->dzc_dys;
 	det_ = surfel->det_;
 	n[0] = surfel->n[0];
 	n[1] = surfel->n[1];
@@ -366,9 +347,6 @@ void surfaceSplatStep2(int width, int height, ZBufferProperty* zBufferProperty, 
 			return;
 	}
 
-	// z value in the lower left corner of the rasterized area
-	z_start = z - dzc_dxs * (x0 - ((float)Xmin + 0.5f)) - dzc_dys * (y0 - ((float)Ymin + 0.5f));
-
 	x = ((float)Xmin + 0.5f) - x0;
 	ddq = 2 * a;
 
@@ -381,9 +359,6 @@ void surfaceSplatStep2(int width, int height, ZBufferProperty* zBufferProperty, 
 		y = ((float)Y + 0.5f) - y0;
 		dq = a * (2 * x + 1) + b * y;
 		q = (c * y + b * x) * y + a * x * x;
-
-		// init z value
-		z_cur = z_start;
 
 		for (X = Xmin; X <= Xmax; X++)
 		{
@@ -412,10 +387,7 @@ void surfaceSplatStep2(int width, int height, ZBufferProperty* zBufferProperty, 
 			}	
 			q += dq;
 			dq += ddq;
-
-			z_cur += dzc_dxs;
 		}
-		z_start += dzc_dys;
 	}
 }
 
@@ -574,10 +546,9 @@ __device__ void surfaceSplatStep1Gpu(int width, int height, ZBufferProperty* zBu
 	float lx, ly;
 	int X, Y;
 	float x, y;
-	float q, dq, ddq;
+	float q;
 
 	float dzc_dxs, dzc_dys;			// dzc/dxs, dzc/dys derivatives
-	float z_start, z_cur;			// z values to be rasterized
 
 	int i;
 
@@ -757,6 +728,30 @@ __device__ void surfaceSplatStep1Gpu(int width, int height, ZBufferProperty* zBu
 	Ymax = (int)(y0 + ly) + 1;
 	Ymin = (int)(y0 - ly);
 
+	// step 2: rasterize the EWA ellipse
+
+	// padding
+	if (Xmin < 0) {
+		Xmin = 0;
+		if (Xmax < 0)
+			Xmax = -1;
+	}
+	if (Xmax >= width) {
+		Xmax = width - 1;
+		if (Xmin >= width)
+			Xmin = width;
+	}
+	if (Ymin < 0) {
+		Ymin = 0;
+		if (Ymax < 0)
+			Ymax = -1;
+	}
+	if (Ymax >= height) {
+		Ymax = height - 1;
+		if (Ymin >= height)
+			Ymin = height;
+	}
+
 	surfel->xMin = Xmin;
 	surfel->xMax = Xmax;
 	surfel->yMin = Ymin;
@@ -765,46 +760,13 @@ __device__ void surfaceSplatStep1Gpu(int width, int height, ZBufferProperty* zBu
 	surfel->zMax = zMax;
 	surfel->x0 = x0;
 	surfel->y0 = y0;
-	surfel->z = z;
 	surfel->a = a;
 	surfel->b = b;
 	surfel->c = c;
-	surfel->dzc_dxs = dzc_dxs;
-	surfel->dzc_dys = dzc_dys;
 	surfel->det_ = det_;
 	surfel->n[0] = n[0];
 	surfel->n[1] = n[1];
 	surfel->n[2] = n[2];
-
-	// step 2: rasterize the EWA ellipse
-
-	// padding
-	if (Xmin < 0) {
-		Xmin = 0;
-		if (Xmax < 0)
-			return;
-	}
-	if (Xmax >= width) {
-		Xmax = width - 1;
-		if (Xmin >= width)
-			return;
-	}
-	if (Ymin < 0) {
-		Ymin = 0;
-		if (Ymax < 0)
-			return;
-	}
-	if (Ymax >= height) {
-		Ymax = height - 1;
-		if (Ymin >= height)
-			return;
-	}
-
-	// z value in the lower left corner of the rasterized area
-	z_start = z - dzc_dxs * (x0 - ((float)Xmin + 0.5f)) - dzc_dys * (y0 - ((float)Ymin + 0.5f));
-
-	x = ((float)Xmin + 0.5f) - x0;
-	ddq = 2 * a;
 
 	// *********************
 	// ellipse rasterization
@@ -813,24 +775,15 @@ __device__ void surfaceSplatStep1Gpu(int width, int height, ZBufferProperty* zBu
 	{
 		// finite differences for ellipse rasterization
 		y = ((float)Y + 0.5f) - y0;
-		dq = a * (2 * x + 1) + b * y;
-		q = (c * y + b * x) * y + a * x * x;
-
-		// init z value
-		z_cur = z_start;
-
 		for (X = Xmin; X <= Xmax; X++)
 		{
+			x = ((float)X + 0.5f) - x0;
+			q = a * x * x + b * x * y + c * y * y + 2 * a * (float)(X - Xmin);
 			i = X + width * Y;
 
 			if (q < zbf_cutoffRadius_2)
 				atomicMin(&zBuffer[i].zMin, zMin);
-			q += dq;
-			dq += ddq;
-
-			z_cur += dzc_dxs;
 		}
-		z_start += dzc_dys;
 	}
 }
 
@@ -840,16 +793,13 @@ __device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBu
 	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
 	float _zbf_cutoffRadius_2 = 1 / zbf_cutoffRadius_2;
 
-	float x0, y0, z, a, b, c;			// the EWA ellipse coefficients
+	float x0, y0, a, b, c;			// the EWA ellipse coefficients
 
 	int Xmin, Xmax, Ymin, Ymax;	// bounding box of the ellipse to be rasterized
 	float zMin, zMax;
 	int X, Y, i;
 	float x, y;
-	float q, dq, ddq;
-
-	float dzc_dxs, dzc_dys;			// dzc/dxs, dzc/dys derivatives
-	float z_start, z_cur;			// z values to be rasterized
+	float q;
 
 	Xmin = surfel->xMin;
 	Xmax = surfel->xMax;
@@ -859,42 +809,9 @@ __device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBu
 	zMax = surfel->zMax;
 	x0 = surfel->x0;
 	y0 = surfel->y0;
-	z = surfel->z;
 	a = surfel->a;
 	b = surfel->b;
 	c = surfel->c;
-	dzc_dxs = surfel->dzc_dxs;
-	dzc_dys = surfel->dzc_dys;
-
-	// step 2: rasterize the EWA ellipse
-
-	// padding
-	if (Xmin < 0) {
-		Xmin = 0;
-		if (Xmax < 0)
-			return;
-	}
-	if (Xmax >= width) {
-		Xmax = width - 1;
-		if (Xmin >= width)
-			return;
-	}
-	if (Ymin < 0) {
-		Ymin = 0;
-		if (Ymax < 0)
-			return;
-	}
-	if (Ymax >= height) {
-		Ymax = height - 1;
-		if (Ymin >= height)
-			return;
-	}
-
-	// z value in the lower left corner of the rasterized area
-	z_start = z - dzc_dxs * (x0 - ((float)Xmin + 0.5f)) - dzc_dys * (y0 - ((float)Ymin + 0.5f));
-
-	x = ((float)Xmin + 0.5f) - x0;
-	ddq = 2 * a;
 
 	// *********************
 	// ellipse rasterization
@@ -903,25 +820,16 @@ __device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBu
 	{
 		// finite differences for ellipse rasterization
 		y = ((float)Y + 0.5f) - y0;
-		dq = a * (2 * x + 1) + b * y;
-		q = (c * y + b * x) * y + a * x * x;
-
-		// init z value
-		z_cur = z_start;
-
 		for (X = Xmin; X <= Xmax; X++)
 		{
+			x = ((float)X + 0.5f) - x0;
+			q = a * x * x + b * x * y + c * y * y + 2 * a * (float)(X - Xmin);
 			i = X + width * Y;
 
 			if (q < zbf_cutoffRadius_2)
 				if (zMin == zBuffer[i].zMin)
 					atomicMax(&zBuffer[i].zMax, zMax);
-			q += dq;
-			dq += ddq;
-
-			z_cur += dzc_dxs;
 		}
-		z_start += dzc_dys;
 	}
 }
 
@@ -931,16 +839,13 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
 	float _zbf_cutoffRadius_2 = 1 / zbf_cutoffRadius_2;
 
-	float x0, y0, z, a, b, c, n[3];			// the EWA ellipse coefficients
+	float x0, y0, a, b, c, n[3];			// the EWA ellipse coefficients
 
 	int Xmin, Xmax, Ymin, Ymax;	// bounding box of the ellipse to be rasterized
 	float zMin;
 	int X, Y, i;
 	float x, y;
-	float q, dq, ddq;
-
-	float dzc_dxs, dzc_dys;			// dzc/dxs, dzc/dys derivatives
-	float z_start, z_cur;			// z values to be rasterized
+	float q;
 
 	float r_comp, g_comp, b_comp;
 
@@ -955,12 +860,9 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 	zMin = surfel->zMin;
 	x0 = surfel->x0;
 	y0 = surfel->y0;
-	z = surfel->z;
 	a = surfel->a;
 	b = surfel->b;
 	c = surfel->c;
-	dzc_dxs = surfel->dzc_dxs;
-	dzc_dys = surfel->dzc_dys;
 	det_ = surfel->det_;
 	n[0] = surfel->n[0];
 	n[1] = surfel->n[1];
@@ -971,36 +873,6 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 	g_comp = surfel->green;
 	b_comp = surfel->blue;
 
-	// step 2: rasterize the EWA ellipse
-
-	// padding
-	if (Xmin < 0) {
-		Xmin = 0;
-		if (Xmax < 0)
-			return;
-	}
-	if (Xmax >= width) {
-		Xmax = width - 1;
-		if (Xmin >= width)
-			return;
-	}
-	if (Ymin < 0) {
-		Ymin = 0;
-		if (Ymax < 0)
-			return;
-	}
-	if (Ymax >= height) {
-		Ymax = height - 1;
-		if (Ymin >= height)
-			return;
-	}
-
-	// z value in the lower left corner of the rasterized area
-	z_start = z - dzc_dxs * (x0 - ((float)Xmin + 0.5f)) - dzc_dys * (y0 - ((float)Ymin + 0.5f));
-
-	x = ((float)Xmin + 0.5f) - x0;
-	ddq = 2 * a;
-
 	// *********************
 	// ellipse rasterization
 	// *********************
@@ -1008,14 +880,10 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 	{
 		// finite differences for ellipse rasterization
 		y = ((float)Y + 0.5f) - y0;
-		dq = a * (2 * x + 1) + b * y;
-		q = (c * y + b * x) * y + a * x * x;
-
-		// init z value
-		z_cur = z_start;
-
 		for (X = Xmin; X <= Xmax; X++)
 		{
+			x = ((float)X + 0.5f) - x0;
+			q = a * x * x + b * x * y + c * y * y + 2 * a * (float)(X - Xmin);
 			i = X + width * Y;
 
 			if (q < zbf_cutoffRadius_2) {
@@ -1037,12 +905,7 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 					atomicAdd(&zBuffer[i].n[2], n[2] * w);
 				}
 			}
-			q += dq;
-			dq += ddq;
-
-			z_cur += dzc_dxs;
 		}
-		z_start += dzc_dys;
 	}
 }
 

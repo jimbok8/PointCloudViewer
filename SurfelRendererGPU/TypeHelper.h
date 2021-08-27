@@ -15,7 +15,7 @@ typedef struct _Surfel {
 
 	int xMin, xMax, yMin, yMax;
 	float zMin, zMax;
-	float x0, y0, z, a, b, c, dzc_dxs, dzc_dys, det_, n[3];
+	float x0, y0, a, b, c, det_, n[3];
 } Surfel;
 
 typedef struct _Transformation {
