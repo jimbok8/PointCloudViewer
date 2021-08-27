@@ -3,10 +3,6 @@
 
 #include "Vector3D.h"
 
-typedef struct _RGBTriple {
-	float r, g, b;
-} RGBTriple;
-
 typedef float TransformationMatrix16f[16];
 
 typedef struct _CameraPosition {
@@ -15,7 +11,11 @@ typedef struct _CameraPosition {
 
 typedef struct _Surfel {
     Vector3D position, normal;
-    float radius, r, g, b;
+    float radius, red, green, blue;
+
+	int xMin, xMax, yMin, yMax;
+	float zMin, zMax;
+	float x0, y0, z, a, b, c, dzc_dxs, dzc_dys, det_, n[3];
 } Surfel;
 
 typedef struct _Transformation {

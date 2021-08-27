@@ -68,6 +68,8 @@ CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int widt
 
 		cudaMalloc(&m_surfelsGpu, sizeof(Surfel) * numSurfels);
 		cudaMemcpy(m_surfelsGpu, m_surfels, sizeof(Surfel) * numSurfels, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&m_imageGpu, sizeof(unsigned char) * width * height * 3);
 	}
 }
 
@@ -84,15 +86,11 @@ CRenderer::~CRenderer() {
 		cudaFree(m_zBufferGpu);
 		cudaFree(m_filterLUTGpu);
 		cudaFree(m_surfelsGpu);
+		cudaFree(m_imageGpu);
 	}
 }
 
 void CRenderer::init() {
-    int index = 0;
-    for (int j = 0; j < m_height; j++)
-        for (int i = 0; i < m_width; i++)
-			setColor(i, j, m_backgroundR, m_backgroundG, m_backgroundB);
-
 	if (m_useGpu)
 		cudaMemcpy(m_zBufferGpu, m_clearData, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyHostToDevice);
 	else
@@ -132,7 +130,6 @@ void CRenderer::rotate(const float dAngle, const float x, const float y, const f
 }
 
 void CRenderer::render() {
-	double t0 = glfwGetTime();
 
     init();
 
@@ -146,25 +143,16 @@ void CRenderer::render() {
 
     setTrafo(convertedTransformation);
 
-	double t1 = glfwGetTime();
 
-    int bbox[4];
-	bbox[2] = bbox[3] = 0;
-	bbox[0] = m_width - 1;
-	bbox[1] = m_height - 1;
 	if (m_useGpu) {
-		projectGPU(m_width, m_height, m_warper, m_zBufferPropertyGpu, m_zBufferGpu, m_filterLUTGpu, m_numSurfels, m_surfelsGpu, bbox);
-		cudaMemcpy(m_zBuffer, m_zBufferGpu, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyDeviceToHost);
+		projectGpu(m_width, m_height, m_warper, m_zBufferPropertyGpu, m_zBufferGpu, m_filterLUTGpu, m_numSurfels, m_surfelsGpu);
+		shadeZBufferGpu(m_width, m_height, m_warper, m_zBufferGpu, m_imageGpu, m_backgroundR, m_backgroundG, m_backgroundB);
+		cudaMemcpy(m_image, m_imageGpu, sizeof(unsigned char) * m_width * m_height * 3, cudaMemcpyDeviceToHost);
 	}
-	else
-		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels, bbox);
-
-	double t2 = glfwGetTime();
-
-    shadeZBuffer(1, bbox);
-
-	double t3 = glfwGetTime();
-	std::cout << t1 - t0 << ' ' << t2 - t1 << ' ' << t3 - t2 << std::endl;
+	else {
+		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels);
+		shadeZBuffer(m_width, m_height, m_warper, m_zBuffer, m_image, m_backgroundR, m_backgroundG, m_backgroundB);
+	}
 }
 
 void CRenderer::setFrustum(float fofv, float aspect, float nearplane, float farplane)
@@ -209,7 +197,7 @@ void CRenderer::setTrafo(const float trafo[16])
 {
 	float s;
 	float r[9], t[3];
-	float ir[9], it[3];
+	float ir[9];
 	float tm[9], tm2[9];
 	int i, j, k;
 
@@ -237,9 +225,6 @@ void CRenderer::setTrafo(const float trafo[16])
 
 	// calculate inverse rotation and translation (needed for view frustum culling)
 	MtrInverse3x3f(r, ir);
-	it[0] = -ir[0] * t[0] - ir[1] * t[1] - ir[2] * t[2];
-	it[1] = -ir[3] * t[0] - ir[4] * t[1] - ir[5] * t[2];
-	it[2] = -ir[6] * t[0] - ir[7] * t[1] - ir[8] * t[2];
 
 	// calculate the matrix for transforming the normals, which is the transpose 
 	// inverse of the model-view transformation matrix.
@@ -252,202 +237,4 @@ void CRenderer::setTrafo(const float trafo[16])
 	// set the member variables of 'wrp'
 	MtrCopy3x3f(r, m_warper->transformation.rotation);
 	for (i = 0; i < 3; i++) m_warper->transformation.translation[i] = t[i];
-}
-
-unsigned char* CRenderer::getPixelPtr(const int x, const int y) {
-	return m_image + (y * m_width + x) * 3;
-}
-
-void CRenderer::setColor(const int x, const int y, const unsigned char r, const unsigned char g, const unsigned char b) {
-	unsigned char* p = getPixelPtr(x, y);
-	*p = r;
-	*(p + 1) = g;
-	*(p + 2) = b;
-}
-
-//-------------------------------------------------------------------------
-// Calculate phong shading for a sample
-// note: this function uses the formulation with the reflection vector. for
-// directional light sources, it produces exactly the same results as cube
-// maps.
-//-------------------------------------------------------------------------
-void CRenderer::lightSamplePhongR(const float r, const float g, const float b, const float nx, const float ny, const float nz, const float vx, const float vy, const float vz, float& resultR, float& resultG, float& resultB)
-{
-	float Ir, Ig, Ib;
-	float Ar, Ag, Ab;
-	float Lx, Ly, Lz;
-	float Rx, Ry, Rz;
-	float t, power, ndotl, rdotv;
-	int j;
-
-	float kA = 0.5f;
-	float kD = 0.75f;
-	float kS = 0.25f;
-	int shininess = 0;
-	float specularR = 205;
-	float specularG = 205;
-	float specularB = 205;
-
-	Ir = Ig = Ib = 1.0f;
-	Ar = Ag = Ab = 0.5f;
-
-	// ambient contribution
-	t = kA;
-	resultR = t * Ar * r;
-	resultG = t * Ag * g;
-	resultB = t * Ab * b;
-
-	Lx = Ly = 0.0f;
-	Lz = -1.0f;
-
-	// calculate the N*L dot product
-	ndotl = nx * Lx + ny * Ly + nz * Lz;
-	ndotl = (ndotl < 0 ? -ndotl : ndotl);
-
-	// calculate normalized reflection vector
-	Rx = 2 * nx * ndotl - Lx;
-	Ry = 2 * ny * ndotl - Ly;
-	Rz = 2 * nz * ndotl - Lz;
-
-	// calculate R*V dot product
-	rdotv = vx * Rx + vy * Ry + vz * Rz;
-	rdotv = (rdotv < 0 ? -rdotv : rdotv);
-
-	// calculate the phong shininess power
-	power = rdotv;
-	j = shininess;
-	while (j > 0)
-	{
-		power *= rdotv;
-		j--;
-	}
-
-	// increment intensities
-	t = kD * ndotl;
-	power *= kS;
-	resultR += Ir * (t * r + specularR * power);
-	resultG += Ig * (t * g + specularG * power);
-	resultB += Ib * (t * b + specularB * power);
-}
-
-//-------------------------------------------------------------------------
-// Shade the samples in the z-buffer of a warper
-//-------------------------------------------------------------------------
-void CRenderer::shadeZBuffer(int magfactor, int bbox[4])
-{
-	int zbf_rows, zbf_cols;
-	float zbf_x_cur, zbf_y_cur;
-	int zbf_i_cur;
-	ZBufferItem* zbf_buf = m_zBuffer;
-
-	Frustum* frst;
-
-	//int xsize, ysize;				// x and y screen coordinates size			
-
-	ZBufferItem* zbufitem;				// current zbuffer item
-
-	float vp_sx, vp_sy;				// variables for inverse viewport mapping
-	float vp_tx, vp_ty;
-
-	float w_, vec_len_;
-	int c;
-
-	int start_dim_x, start_dim_y;	// writing the color values to the display image
-	int end_dim_x, end_dim_y;		// (supports progressive rendering)
-	int dim_y, dim_x;
-
-	// initialise local variables for more efficient access
-	frst = &(m_warper->frustum);
-
-	// set variables for inverse viewport mapping 
-	vp_sx = 2 * frst->xP / m_width;
-	vp_sy = 2 * frst->yP / m_height;
-	vp_tx = frst->xC - frst->xP;
-	vp_ty = frst->yC - frst->yP;
-
-	// shade z-buffer
-	// bbox[] specifies a bounding box
-	zbf_x_cur = bbox[0] + 0.5f;
-	zbf_y_cur = bbox[1] + 0.5f;
-	zbf_rows = bbox[1];
-	zbf_cols = bbox[0];
-	zbf_i_cur = bbox[1] * m_width + bbox[0];
-	while (zbf_rows <= bbox[3])
-	{
-		while (zbf_cols <= bbox[2])
-
-		{
-			zbufitem = &(zbf_buf[zbf_i_cur]);
-			// avoid division by zero!
-			if (zbufitem->w != 0.0f)
-			{
-				// NOTE: we do per surfel shading, hence all there is left to do for the shader is
-				// to normalize the depth, colors and normals, and write them to the display image
-
-				w_ = 1.f / zbufitem->w;
-
-				// normalize colors
-				float r = zbufitem->c[0] * w_;
-				float g = zbufitem->c[1] * w_;
-				float b = zbufitem->c[2] * w_;
-
-				// re-normalize normal
-				float nx = zbufitem->n[0];
-				float ny = zbufitem->n[1];
-				float nz = zbufitem->n[2];
-				w_ = 1.f / (float)sqrt(nx * nx + ny * ny + nz * nz);
-				nx *= w_;
-				ny *= w_;
-				nz *= w_;
-
-				// compute viewing vector
-				float vx = -(zbf_x_cur * vp_sx + vp_tx);
-				float vy = -(zbf_y_cur * vp_sy + vp_ty);
-				float vz = -1.f;
-				vec_len_ = 1.f / (float)sqrt(vx * vx + vy * vy + 1.f);
-				vx *= vec_len_;
-				vy *= vec_len_;
-				vz *= vec_len_;
-
-				float resultR, resultG, resultB;
-				lightSamplePhongR(r, g, b, nx, ny, nz, vx, vy, vz, resultR, resultG, resultB);
-
-				// clamp color intensities
-				if (resultR > 255.0) resultR = 255.0;
-				if (resultG > 255.0) resultG = 255.0;
-				if (resultB > 255.0) resultB = 255.0;
-
-				// write to display image, blow up pixels for progressive rendering
-				start_dim_x = zbf_cols * magfactor;
-				end_dim_x = start_dim_x + magfactor;
-				start_dim_y = zbf_rows * magfactor;
-				end_dim_y = start_dim_y + magfactor;
-
-				// write output color to frame buffer
-				for (dim_y = start_dim_y; dim_y < end_dim_y; dim_y++)
-					for (dim_x = start_dim_x; dim_x < end_dim_x; dim_x++)
-						setColor(dim_x, dim_y, (unsigned char)resultR, (unsigned char)resultG, (unsigned char)resultB);
-			}
-			else {
-				// write to display image, blow up pixels for progressive rendering
-				start_dim_x = zbf_cols * magfactor;
-				end_dim_x = start_dim_x + magfactor;
-				start_dim_y = zbf_rows * magfactor;
-				end_dim_y = start_dim_y + magfactor;
-				for (dim_y = start_dim_y; dim_y < end_dim_y; dim_y++)
-					for (dim_x = start_dim_x; dim_x < end_dim_x; dim_x++)
-						setColor(dim_x, dim_y, m_backgroundR, m_backgroundG, m_backgroundB);
-			}
-
-			zbf_x_cur += 1.0f;
-			zbf_i_cur++;
-			zbf_cols++;
-		}
-		bbox[1]++;
-		zbf_x_cur = bbox[0] + 0.5f;
-		zbf_y_cur = bbox[1] + 0.5f;
-		zbf_rows = bbox[1];
-		zbf_cols = bbox[0];
-		zbf_i_cur = bbox[1] * m_width + bbox[0];
-	}
 }

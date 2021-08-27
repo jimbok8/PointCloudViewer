@@ -114,11 +114,11 @@ int main() {
         surfels[i].position = position;
         surfels[i].normal = normal;
         surfels[i].radius = us[i].getLength();
-        surfels[i].r = r * 255.0f;
-        surfels[i].g = g * 255.0f;
-        surfels[i].b = b * 255.0f;
+        surfels[i].red = r * 255.0f;
+        surfels[i].green = g * 255.0f;
+        surfels[i].blue = b * 255.0f;
     }
-    g_renderer = new CRenderer(positions.size(), surfels, WINDOW_WIDTH, WINDOW_HEIGHT, 25, 25, 25, true);
+    g_renderer = new CRenderer(positions.size(), surfels, WINDOW_WIDTH, WINDOW_HEIGHT, 25, 25, 25, false);
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
