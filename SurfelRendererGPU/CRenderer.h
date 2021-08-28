@@ -30,7 +30,6 @@ private:
     Surfel* m_surfels, * m_surfelsGpu;
 
     void init();
-
     void setFrustum(float fofv, float aspect, float nearplane, float farplane);
     void setTrafo(const float trafo[16]);
    

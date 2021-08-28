@@ -49,7 +49,7 @@ static void cursorPosCallback(GLFWwindow* window, double x, double y) {
     }
     if (g_rightPress && g_rightLastX != INT_MIN && g_rightLastY != INT_MIN) {
         Vector3D v((float)(newX - g_rightLastX), (float)(g_rightLastY - newY), 0.0f);
-        g_renderer->translate(v[0], v[2], v[2]);
+        g_renderer->translate(v[0], v[1], v[2]);
     }
 
     g_leftLastX = g_rightLastX = newX;

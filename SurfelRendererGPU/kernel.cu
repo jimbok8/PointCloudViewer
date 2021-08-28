@@ -756,6 +756,7 @@ __device__ void surfaceSplatStep1Gpu(int width, int height, ZBufferProperty* zBu
 	surfel->xMax = Xmax;
 	surfel->yMin = Ymin;
 	surfel->yMax = Ymax;
+	surfel->area = (Xmax - Xmin + 1) * (Ymax - Ymin + 1);
 	surfel->zMin = zMin;
 	surfel->zMax = zMax;
 	surfel->x0 = x0;
@@ -771,23 +772,23 @@ __device__ void surfaceSplatStep1Gpu(int width, int height, ZBufferProperty* zBu
 	// *********************
 	// ellipse rasterization
 	// *********************
-	for (Y = Ymin; Y <= Ymax; Y++)
+	/*for (Y = Ymin; Y <= Ymax; Y++)
 	{
 		// finite differences for ellipse rasterization
 		y = ((float)Y + 0.5f) - y0;
 		for (X = Xmin; X <= Xmax; X++)
 		{
 			x = ((float)X + 0.5f) - x0;
-			q = a * x * x + b * x * y + c * y * y + 2 * a * (float)(X - Xmin);
+			q = a * x * x + b * x * y + c * y * y;
 			i = X + width * Y;
 
 			if (q < zbf_cutoffRadius_2)
 				atomicMin(&zBuffer[i].zMin, zMin);
 		}
-	}
+	}*/
 }
 
-__device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, Surfel* surfel)
+/*__device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, Surfel* surfel)
 {
 	float zbf_LUTsize = zBufferProperty->LUTsize;
 	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
@@ -823,7 +824,7 @@ __device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBu
 		for (X = Xmin; X <= Xmax; X++)
 		{
 			x = ((float)X + 0.5f) - x0;
-			q = a * x * x + b * x * y + c * y * y + 2 * a * (float)(X - Xmin);
+			q = a * x * x + b * x * y + c * y * y;
 			i = X + width * Y;
 
 			if (q < zbf_cutoffRadius_2)
@@ -883,7 +884,7 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 		for (X = Xmin; X <= Xmax; X++)
 		{
 			x = ((float)X + 0.5f) - x0;
-			q = a * x * x + b * x * y + c * y * y + 2 * a * (float)(X - Xmin);
+			q = a * x * x + b * x * y + c * y * y;
 			i = X + width * Y;
 
 			if (q < zbf_cutoffRadius_2) {
@@ -907,7 +908,7 @@ __device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBu
 			}
 		}
 	}
-}
+}*/
 
 __device__ void projectSampleGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, Surfel* surfel)
 {
@@ -1017,7 +1018,7 @@ __global__ void splatKernelStep1(int width, int height, Warper* warper, ZBufferP
 	}
 }
 
-__global__ void splatKernelStep2(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
+/*__global__ void splatKernelStep2(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	while (i < numSurfels) {
 		surfaceSplatStep2Gpu(width, height, zBufferProperty, zBuffer, filterLUT, &surfels[i]);
@@ -1031,6 +1032,181 @@ __global__ void splatKernelStep3(int width, int height, Warper* warper, ZBufferP
 		surfaceSplatStep3Gpu(width, height, zBufferProperty, zBuffer, filterLUT, &surfels[i]);
 		i += gridDim.x * blockDim.x;
 	}
+}*/
+
+__device__ void surfaceSplatStep2Gpu(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, Surfel* surfel, int index)
+{
+	float zbf_LUTsize = zBufferProperty->LUTsize;
+	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
+	float _zbf_cutoffRadius_2 = 1 / zbf_cutoffRadius_2;
+
+	float x0, y0, a, b, c;			// the EWA ellipse coefficients
+
+	int Xmin, Xmax, Ymin, Ymax;	// bounding box of the ellipse to be rasterized
+	float zMin, zMax;
+	int X, Y, i;
+	float x, y;
+	float q;
+
+	Xmin = surfel->xMin;
+	Xmax = surfel->xMax;
+	Ymin = surfel->yMin;
+	Ymax = surfel->yMax;
+	zMin = surfel->zMin;
+	zMax = surfel->zMax;
+	x0 = surfel->x0;
+	y0 = surfel->y0;
+	a = surfel->a;
+	b = surfel->b;
+	c = surfel->c;
+
+	Y = Ymin + index / (Xmax - Xmin + 1);
+	X = Xmin + index % (Xmax - Xmin + 1);
+
+	y = ((float)Y + 0.5f) - y0;
+	x = ((float)X + 0.5f) - x0;
+	q = a * x * x + b * x * y + c * y * y;
+	i = X + width * Y;
+
+	if (q < zbf_cutoffRadius_2)
+		atomicMin(&zBuffer[i].zMin, zMin);
+}
+
+__device__ void surfaceSplatStep3Gpu(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, Surfel* surfel, int index)
+{
+	float zbf_LUTsize = zBufferProperty->LUTsize;
+	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
+	float _zbf_cutoffRadius_2 = 1 / zbf_cutoffRadius_2;
+
+	float x0, y0, a, b, c;			// the EWA ellipse coefficients
+
+	int Xmin, Xmax, Ymin, Ymax;	// bounding box of the ellipse to be rasterized
+	float zMin, zMax;
+	int X, Y, i;
+	float x, y;
+	float q;
+
+	Xmin = surfel->xMin;
+	Xmax = surfel->xMax;
+	Ymin = surfel->yMin;
+	Ymax = surfel->yMax;
+	zMin = surfel->zMin;
+	zMax = surfel->zMax;
+	x0 = surfel->x0;
+	y0 = surfel->y0;
+	a = surfel->a;
+	b = surfel->b;
+	c = surfel->c;
+
+	Y = Ymin + index / (Xmax - Xmin + 1);
+	X = Xmin + index % (Xmax - Xmin + 1);
+
+	y = ((float)Y + 0.5f) - y0;
+	x = ((float)X + 0.5f) - x0;
+	q = a * x * x + b * x * y + c * y * y;
+	i = X + width * Y;
+
+	if (q < zbf_cutoffRadius_2)
+		if (zMin == zBuffer[i].zMin)
+			atomicMax(&zBuffer[i].zMax, zMax);
+}
+
+__device__ void surfaceSplatStep4Gpu(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, Surfel* surfel, int index)
+{
+	float zbf_LUTsize = zBufferProperty->LUTsize;
+	float zbf_cutoffRadius_2 = zBufferProperty->cutoffRadius * zBufferProperty->cutoffRadius;
+	float _zbf_cutoffRadius_2 = 1 / zbf_cutoffRadius_2;
+
+	float x0, y0, a, b, c, n[3];			// the EWA ellipse coefficients
+
+	int Xmin, Xmax, Ymin, Ymax;	// bounding box of the ellipse to be rasterized
+	float zMin, zMax;
+	int X, Y, i;
+	float x, y;
+	float q;
+	float w, det_, r_comp, g_comp, b_comp;
+
+	Xmin = surfel->xMin;
+	Xmax = surfel->xMax;
+	Ymin = surfel->yMin;
+	Ymax = surfel->yMax;
+	zMin = surfel->zMin;
+	zMax = surfel->zMax;
+	x0 = surfel->x0;
+	y0 = surfel->y0;
+	a = surfel->a;
+	b = surfel->b;
+	c = surfel->c;
+	det_ = surfel->det_;
+	n[0] = surfel->n[0];
+	n[1] = surfel->n[1];
+	n[2] = surfel->n[2];
+
+	r_comp = surfel->red;
+	g_comp = surfel->green;
+	b_comp = surfel->blue;
+
+	Y = Ymin + index / (Xmax - Xmin + 1);
+	X = Xmin + index % (Xmax - Xmin + 1);
+
+	y = ((float)Y + 0.5f) - y0;
+	x = ((float)X + 0.5f) - x0;
+	q = a * x * x + b * x * y + c * y * y;
+	i = X + width * Y;
+
+	if (q < zbf_cutoffRadius_2)
+		if (zMin <= zBuffer[i].zMax) {
+			// merge contributions
+			w = filterLUT[(int)(q * _zbf_cutoffRadius_2 * zbf_LUTsize)] * det_;
+
+			atomicAdd(&zBuffer[i].w, w);
+
+			// add color contribution
+			atomicAdd(&zBuffer[i].c[0], r_comp * w);
+			atomicAdd(&zBuffer[i].c[1], g_comp * w);
+			atomicAdd(&zBuffer[i].c[2], b_comp * w);
+
+			// normals
+			atomicAdd(&zBuffer[i].n[0], n[0] * w);
+			atomicAdd(&zBuffer[i].n[1], n[1] * w);
+			atomicAdd(&zBuffer[i].n[2], n[2] * w);
+		}
+}
+
+__global__ void splatKernelStep2(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
+	int i = blockIdx.x;
+	while (i < numSurfels) {
+		int j = threadIdx.x;
+		while (j < surfels[i].area) {
+			surfaceSplatStep2Gpu(width, height, zBufferProperty, zBuffer, filterLUT, &surfels[i], j);
+			j += blockDim.x;
+		}
+		i += gridDim.x;
+	}
+}
+
+__global__ void splatKernelStep3(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
+	int i = blockIdx.x;
+	while (i < numSurfels) {
+		int j = threadIdx.x;
+		while (j < surfels[i].area) {
+			surfaceSplatStep3Gpu(width, height, zBufferProperty, zBuffer, filterLUT, &surfels[i], j);
+			j += blockDim.x;
+		}
+		i += gridDim.x;
+	}
+}
+
+__global__ void splatKernelStep4(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
+	int i = blockIdx.x;
+	while (i < numSurfels) {
+		int j = threadIdx.x;
+		while (j < surfels[i].area) {
+			surfaceSplatStep4Gpu(width, height, zBufferProperty, zBuffer, filterLUT, &surfels[i], j);
+			j += blockDim.x;
+		}
+		i += gridDim.x;
+	}
 }
 
 void projectGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
@@ -1039,8 +1215,11 @@ void projectGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferP
 	cudaMemcpy(warperGpu, warper, sizeof(Warper), cudaMemcpyHostToDevice);
 
 	splatKernelStep1<<<512, 512>>>(width, height, warperGpu, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
-	splatKernelStep2<<<512, 512>>>(width, height, warperGpu, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
-	splatKernelStep3<<<512, 512>>>(width, height, warperGpu, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
+	//splatKernelStep2<<<512, 512>>>(width, height, warperGpu, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
+	//splatKernelStep3<<<512, 512>>>(width, height, warperGpu, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
+	splatKernelStep2<<<512, 512>>>(width, height, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
+	splatKernelStep3<<<512, 512>>>(width, height, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
+	splatKernelStep4<<<512, 512>>>(width, height, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels);
 
 	cudaError_t cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess)

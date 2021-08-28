@@ -13,7 +13,7 @@ typedef struct _Surfel {
     Vector3D position, normal;
     float radius, red, green, blue;
 
-	int xMin, xMax, yMin, yMax;
+	int xMin, xMax, yMin, yMax, area;
 	float zMin, zMax;
 	float x0, y0, a, b, c, det_, n[3];
 } Surfel;
