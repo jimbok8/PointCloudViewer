@@ -8,8 +8,8 @@
 #include "CRenderer.h"
 #include "MatrixHelper.h"
 
-const unsigned int WINDOW_WIDTH = 1024;
-const unsigned int WINDOW_HEIGHT = 768;
+const int WINDOW_WIDTH = 1024;
+const int WINDOW_HEIGHT = 768;
 
 static int g_leftLastX, g_leftLastY, g_rightLastX, g_rightLastY;
 static float g_factor = 1.0f;
@@ -17,7 +17,8 @@ static bool g_leftPress = false, g_rightPress = false;
 static CRenderer* g_renderer;
 
 static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-    //g_renderer->setViewPortSize(CSize(width, height));
+    //g_renderer->resize(width, height);
+    //g_renderer->render();
     glViewport(0, 0, width, height);
 }
 

@@ -1,9 +1,9 @@
 #include "CRenderer.h"
 
 CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int width, const int height, const unsigned char backgroundR, const unsigned char backgroundG, const unsigned char backgroundB, const bool useGpu) :
+	m_width(width),
+	m_height(height),
 	m_numSurfels(numSurfels),
-    m_width(width),
-    m_height(height),
     m_backgroundR(backgroundR),
 	m_backgroundG(backgroundG),
 	m_backgroundB(backgroundB),
@@ -12,30 +12,19 @@ CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int widt
     m_cameraPosition.scaleTranslationMatrix[14] = -1000.0f;
     MtrUnity4x4f(m_cameraPosition.rotationMatrix);
 
-	m_image = new unsigned char[width * height * 3];
-
-	// allocate and initialize the warper
 	m_warper = new Warper;
-	// set the default view frustum (similar to gluPerspective): angle of field of view, 
-	// aspect ratio, near and far clipping planes
 	setFrustum(30.f, 1.f, 10.f, 100000.f);
 
 	m_zBufferProperty = new ZBufferProperty;
 	m_zBufferProperty->bufsize = width * height;
 	m_zBufferProperty->LUTsize = 1024;
-
-	// default values for surface splatting
 	m_zBufferProperty->cutoffRadius = 1.0f;
-	m_zBufferProperty->constThreshold = 0.4f;
-	m_zBufferProperty->distThreshold = 2.0f;
 	m_zBufferProperty->angleTrheshold = 8.0f;
 
 	m_zBuffer = new ZBufferItem[width * height];
 
-	// init clear data
 	m_clearData = new ZBufferItem[width * height];
 	for (int i = 0; i < width * height; i++) {
-		// initialize with a 'large' value. to improve...
 		m_clearData[i].zMin = FLT_MAX;
 		m_clearData[i].zMax = -FLT_MAX;
 		m_clearData[i].w = 0.0f;
@@ -49,19 +38,24 @@ CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int widt
 
 	m_filterLUT = new float[m_zBufferProperty->LUTsize];
 	float d = 1.f / ((float)m_zBufferProperty->LUTsize - 1.f);
-	// table will be indexed by squared distance
 	for (int i = 0; i < m_zBufferProperty->LUTsize; i++)
 		m_filterLUT[i] = (float)exp(-(float)i * d * m_zBufferProperty->cutoffRadius * m_zBufferProperty->cutoffRadius);
 
 	m_surfels = new Surfel[numSurfels];
 	memcpy(m_surfels, surfels, sizeof(Surfel) * numSurfels);
 
+	m_image = new unsigned char[width * height * 3];
+	
 	if (useGpu) {
+		cudaMalloc(&m_warperGpu, sizeof(Warper));
+
 		cudaMalloc(&m_zBufferPropertyGpu, sizeof(ZBufferProperty));
 		cudaMemcpy(m_zBufferPropertyGpu, m_zBufferProperty, sizeof(ZBufferProperty), cudaMemcpyHostToDevice);
 
 		cudaMalloc(&m_zBufferGpu, sizeof(ZBufferItem) * m_zBufferProperty->bufsize);
-		cudaMemcpy(m_zBufferGpu, m_zBuffer, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&m_clearDataGpu, sizeof(ZBufferItem) * m_zBufferProperty->bufsize);
+		cudaMemcpy(m_clearDataGpu, m_clearData, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyHostToDevice);
 
 		cudaMalloc(&m_filterLUTGpu, sizeof(float) * m_zBufferProperty->LUTsize);
 		cudaMemcpy(m_filterLUTGpu, m_filterLUT, sizeof(float) * m_zBufferProperty->LUTsize, cudaMemcpyHostToDevice);
@@ -82,8 +76,10 @@ CRenderer::~CRenderer() {
 	delete[] m_clearData;
 	delete[] m_filterLUT;
 	if (m_useGpu) {
+		cudaFree(m_warperGpu);
 		cudaFree(m_zBufferPropertyGpu);
 		cudaFree(m_zBufferGpu);
+		cudaFree(m_clearDataGpu);
 		cudaFree(m_filterLUTGpu);
 		cudaFree(m_surfelsGpu);
 		cudaFree(m_imageGpu);
@@ -92,7 +88,7 @@ CRenderer::~CRenderer() {
 
 void CRenderer::init() {
 	if (m_useGpu)
-		cudaMemcpy(m_zBufferGpu, m_clearData, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyHostToDevice);
+		cudaMemcpy(m_zBufferGpu, m_clearDataGpu, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyDeviceToDevice);
 	else
 		memcpy(m_zBuffer, m_clearData, sizeof(ZBufferItem) * m_zBufferProperty->bufsize);
 }
@@ -107,6 +103,49 @@ int CRenderer::getHeight() const {
 
 const unsigned char* CRenderer::getImage() const {
     return m_image;
+}
+
+void CRenderer::resize(const int width, const int height) {
+	m_width = width;
+	m_height = height;
+
+	delete[] m_zBuffer;
+	delete[] m_clearData;
+	delete[] m_image;
+
+	m_zBufferProperty->bufsize = width * height;
+
+	m_zBuffer = new ZBufferItem[width * height];
+
+	m_clearData = new ZBufferItem[width * height];
+	for (int i = 0; i < width * height; i++) {
+		m_clearData[i].zMin = FLT_MAX;
+		m_clearData[i].zMax = -FLT_MAX;
+		m_clearData[i].w = 0.0f;
+		m_clearData[i].c[0] = 0.0f;
+		m_clearData[i].c[1] = 0.0f;
+		m_clearData[i].c[2] = 0.0f;
+		m_clearData[i].n[0] = 0.0f;
+		m_clearData[i].n[1] = 0.0f;
+		m_clearData[i].n[2] = 0.0f;
+	}
+
+	m_image = new unsigned char[width * height * 3];
+
+	if (m_useGpu) {
+		cudaFree(m_zBufferGpu);
+		cudaFree(m_clearDataGpu);
+		cudaFree(m_imageGpu);
+
+		cudaMemcpy(m_zBufferPropertyGpu, m_zBufferProperty, sizeof(ZBufferProperty), cudaMemcpyHostToDevice);
+
+		cudaMalloc(&m_zBufferGpu, sizeof(ZBufferItem) * m_zBufferProperty->bufsize);
+
+		cudaMalloc(&m_clearDataGpu, sizeof(ZBufferItem) * m_zBufferProperty->bufsize);
+		cudaMemcpy(m_clearDataGpu, m_clearData, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&m_imageGpu, sizeof(unsigned char) * width * height * 3);
+	}
 }
 
 void CRenderer::scale(const float dScaleX, const float dScaleY, const float dScaleZ) {
@@ -130,7 +169,6 @@ void CRenderer::rotate(const float dAngle, const float x, const float y, const f
 }
 
 void CRenderer::render() {
-
     init();
 
     TransformationMatrix16f transformation, convertedTransformation;
@@ -145,18 +183,22 @@ void CRenderer::render() {
 
 
 	if (m_useGpu) {
-		projectGpu(m_width, m_height, m_warper, m_zBufferPropertyGpu, m_zBufferGpu, m_filterLUTGpu, m_numSurfels, m_surfelsGpu);
-		shadeZBufferGpu(m_width, m_height, m_warper, m_zBufferGpu, m_imageGpu, m_backgroundR, m_backgroundG, m_backgroundB);
+		double t0 = glfwGetTime();
+		projectGpu(m_width, m_height, m_warperGpu, m_zBufferPropertyGpu, m_zBufferGpu, m_filterLUTGpu, m_numSurfels, m_surfelsGpu);
+		double t1 = glfwGetTime();
+		shadeGpu(m_width, m_height, m_warperGpu, m_zBufferGpu, m_imageGpu, m_backgroundR, m_backgroundG, m_backgroundB);
+		double t2 = glfwGetTime();
 		cudaMemcpy(m_image, m_imageGpu, sizeof(unsigned char) * m_width * m_height * 3, cudaMemcpyDeviceToHost);
+		double t3 = glfwGetTime();
+		std::cout << t1 - t0 << ' ' << t2 - t1 << ' ' << t3 - t2 << std::endl;
 	}
 	else {
 		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels);
-		shadeZBuffer(m_width, m_height, m_warper, m_zBuffer, m_image, m_backgroundR, m_backgroundG, m_backgroundB);
+		shade(m_width, m_height, m_warper, m_zBuffer, m_image, m_backgroundR, m_backgroundG, m_backgroundB);
 	}
 }
 
-void CRenderer::setFrustum(float fofv, float aspect, float nearplane, float farplane)
-{
+void CRenderer::setFrustum(float fofv, float aspect, float nearplane, float farplane) {
 	float t, b, l, r;
 	float s;
 	float* fv;
@@ -188,13 +230,7 @@ void CRenderer::setFrustum(float fofv, float aspect, float nearplane, float farp
 	fv[21] = r * s; fv[22] = t * s; fv[23] = farplane;
 }
 
-//-------------------------------------------------------------------------
-// Init transformation variables
-// note: the matrix trafo[] is expected to be row major ordered, i.e.
-// row 1 has indices 0..3, row 2 has indices 4..7, etc.
-//-------------------------------------------------------------------------
-void CRenderer::setTrafo(const float trafo[16])
-{
+void CRenderer::setTrafo(const float trafo[16]) {
 	float s;
 	float r[9], t[3];
 	float ir[9];
@@ -203,16 +239,11 @@ void CRenderer::setTrafo(const float trafo[16])
 
 	// get rotation part
 	for (i = 0; i < 3; i++)
-	{
 		for (j = 0; j < 3; j++)
-		{
 			r[i * 3 + j] = trafo[i * 4 + j];
-		}
-	}
 	// get translation part
 	k = 3;
-	for (i = 0; i < 3; i++)
-	{
+	for (i = 0; i < 3; i++) {
 		t[i] = trafo[k];
 		k += 4;
 	}
@@ -237,4 +268,7 @@ void CRenderer::setTrafo(const float trafo[16])
 	// set the member variables of 'wrp'
 	MtrCopy3x3f(r, m_warper->transformation.rotation);
 	for (i = 0; i < 3; i++) m_warper->transformation.translation[i] = t[i];
+
+	if (m_useGpu)
+		cudaMemcpy(m_warperGpu, m_warper, sizeof(Warper), cudaMemcpyHostToDevice);
 }

@@ -47,17 +47,9 @@ typedef struct _ZBufferItem {
 
 typedef struct _ZBufferProperty {
 	int bufsize;
-
-	// surface splatting parameters
-	float cutoffRadius;
-
-	// blending thresholds used for surface splatting
-	float constThreshold;
-	float distThreshold;
-	float angleTrheshold;
-
-	// reconstruction filter table used for surface splatting
 	int LUTsize;
+	float cutoffRadius;		// surface splatting parameters
+	float angleTrheshold;	// blending thresholds used for surface splatting
 } ZBufferProperty;
 
 #endif

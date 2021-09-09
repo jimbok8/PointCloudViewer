@@ -5,13 +5,15 @@
 #include <vector>
 #include <iostream>
 
+#include <GLFW/glfw3.h>
+
 #include "TypeHelper.h"
 #include "MatrixHelper.h"
 
 extern void project(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels);
 extern void projectGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels);
-extern void shadeZBuffer(int width, int height, Warper* warper, ZBufferItem* zBuffer, unsigned char* image, unsigned char backgroundR, unsigned char backgroundG, unsigned char backgroundB);
-extern void shadeZBufferGpu(int width, int height, Warper* warper, ZBufferItem* zBuffer, unsigned char* image, unsigned char backgroundR, unsigned char backgroundG, unsigned char backgroundB);
+extern void shade(int width, int height, Warper* warper, ZBufferItem* zBuffer, unsigned char* image, unsigned char backgroundR, unsigned char backgroundG, unsigned char backgroundB);
+extern void shadeGpu(int width, int height, Warper* warper, ZBufferItem* zBuffer, unsigned char* image, unsigned char backgroundR, unsigned char backgroundG, unsigned char backgroundB);
 
 class CRenderer {
 private:
@@ -23,9 +25,9 @@ private:
     unsigned char* m_image, * m_imageGpu;
     CameraPosition m_cameraPosition;
 
-    Warper* m_warper;
+    Warper* m_warper, * m_warperGpu;
     ZBufferProperty* m_zBufferProperty, * m_zBufferPropertyGpu;
-    ZBufferItem* m_zBuffer, * m_zBufferGpu, * m_clearData;
+    ZBufferItem* m_zBuffer, * m_zBufferGpu, * m_clearData, * m_clearDataGpu;
     float* m_filterLUT, * m_filterLUTGpu;
     Surfel* m_surfels, * m_surfelsGpu;
 
@@ -39,6 +41,7 @@ public:
     int getWidth() const;
     int getHeight() const;
     const unsigned char* getImage() const;
+    void resize(const int width, const int height);
     void scale(const float dScaleX, const float dScaleY, const float dScaleZ);
     void translate(const float dx, const float dy, const float dz);
     void rotate(const float dAngle, const float x, const float y, const float z);
