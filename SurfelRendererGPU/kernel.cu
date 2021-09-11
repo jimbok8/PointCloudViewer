@@ -923,9 +923,9 @@ __global__ void surfaceSplatStep3Kernel(int width, int height, ZBufferProperty* 
 		}
 		i += gridDim.x;
 	}
-}*/
+}
 
-__global__ void surfaceSplatStep1Kernel(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels, int* sum) {
+__global__ void surfaceSplatStep1Kernel(int width, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, int numSurfels, Surfel* surfels, int* sum) {
 	__shared__ int sumArea;
 	int i, l, r, mid;
 
@@ -945,7 +945,7 @@ __global__ void surfaceSplatStep1Kernel(int width, int height, ZBufferProperty* 
 	}
 }
 
-__global__ void surfaceSplatStep2Kernel(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels, int* sum) {
+__global__ void surfaceSplatStep2Kernel(int width, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, int numSurfels, Surfel* surfels, int* sum) {
 	__shared__ int sumArea;
 	int i, l, r, mid;
 
@@ -965,7 +965,7 @@ __global__ void surfaceSplatStep2Kernel(int width, int height, ZBufferProperty* 
 	}
 }
 
-__global__ void surfaceSplatStep3Kernel(int width, int height, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels, int* sum) {
+__global__ void surfaceSplatStep3Kernel(int width, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels, int* sum) {
 	__shared__ int sumArea;
 	int i, l, r, mid;
 
@@ -983,6 +983,45 @@ __global__ void surfaceSplatStep3Kernel(int width, int height, ZBufferProperty* 
 
 		i += gridDim.x * blockDim.x;
 	}
+}*/
+
+__global__ void surfaceSplatStep1Kernel(int width, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, int index, Surfel* surfels) {
+	__shared__ Surfel* surfel;
+	int i;
+
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	surfel = &surfels[i];
+	while (i < surfel->area) {
+		surfaceSplatStep1Gpu(width, zBufferProperty, zBuffer, surfel, i);
+
+		i += gridDim.x * blockDim.x;
+	}
+}
+
+__global__ void surfaceSplatStep2Kernel(int width, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, int index, Surfel* surfels) {
+	__shared__ Surfel* surfel;
+	int i;
+
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	surfel = &surfels[i];
+	while (i < surfel->area) {
+		surfaceSplatStep2Gpu(width, zBufferProperty, zBuffer, surfel, i);
+
+		i += gridDim.x * blockDim.x;
+	}
+}
+
+__global__ void surfaceSplatStep3Kernel(int width, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int index, Surfel* surfels) {
+	__shared__ Surfel* surfel;
+	int i;
+
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	surfel = &surfels[i];
+	while (i < surfel->area) {
+		surfaceSplatStep3Gpu(width, zBufferProperty, zBuffer, filterLUT, surfel, i);
+
+		i += gridDim.x * blockDim.x;
+	}
 }
 
 void projectGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
@@ -995,14 +1034,14 @@ void projectGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferP
 	cudaMemcpy(sum, sumGpu, sizeof(int) * (numSurfels + 1), cudaMemcpyDeviceToHost);
 	for (int i = 1; i <= numSurfels; i++)
 		sum[i] += sum[i - 1];
-	std::cout << sum[numSurfels] << std::endl;
+	//std::cout << sum[numSurfels] << std::endl;
 	cudaMemcpy(sumGpu, sum, sizeof(int) * (numSurfels + 1), cudaMemcpyHostToDevice);
 	//double t1 = glfwGetTime();
-	surfaceSplatStep1Kernel<<<512, 1024>>>(width, height, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels, sumGpu);
+	surfaceSplatStep1Kernel<<<512, 1024>>>(width, zBufferProperty, zBuffer, numSurfels, surfels, sumGpu);
 	//double t2 = glfwGetTime();
-	surfaceSplatStep2Kernel<<<512, 1024>>>(width, height, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels, sumGpu);
+	surfaceSplatStep2Kernel<<<512, 1024>>>(width, zBufferProperty, zBuffer, numSurfels, surfels, sumGpu);
 	//double t3 = glfwGetTime();
-	surfaceSplatStep3Kernel<<<512, 1024>>>(width, height, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels, sumGpu);
+	surfaceSplatStep3Kernel<<<512, 1024>>>(width, zBufferProperty, zBuffer, filterLUT, numSurfels, surfels, sumGpu);
 	//double t4 = glfwGetTime();
 	//std::cout << t1 - t0 << ' ' << t2 - t1 << ' ' << t3 - t2 << ' ' << t4 - t3 << ' ';
 
