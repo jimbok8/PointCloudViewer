@@ -182,14 +182,9 @@ void CRenderer::render() {
     setTrafo(convertedTransformation);
 
 	if (m_useGpu) {
-		//double t0 = glfwGetTime();
 		projectGpu(m_width, m_height, m_warperGpu, m_zBufferPropertyGpu, m_zBufferGpu, m_filterLUTGpu, m_numSurfels, m_surfelsGpu);
-		//double t1 = glfwGetTime();
 		shadeGpu(m_width, m_height, m_warperGpu, m_zBufferGpu, m_imageGpu, m_backgroundR, m_backgroundG, m_backgroundB);
-		//double t2 = glfwGetTime();
 		cudaMemcpy(m_image, m_imageGpu, sizeof(unsigned char) * m_width * m_height * 3, cudaMemcpyDeviceToHost);
-		//double t3 = glfwGetTime();
-		//std::cout << t1 - t0 << ' ' << t2 - t1 << ' ' << t3 - t2 << std::endl;
 	}
 	else {
 		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels);
