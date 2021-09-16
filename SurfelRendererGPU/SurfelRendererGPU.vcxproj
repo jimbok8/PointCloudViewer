@@ -88,6 +88,7 @@
     <ClInclude Include="CRenderer.h" />
     <ClInclude Include="CShader.h" />
     <ClInclude Include="MatrixHelper.h" />
+    <ClInclude Include="TransformHelper.h" />
     <ClInclude Include="TypeHelper.h" />
     <ClInclude Include="Vector3D.h" />
   </ItemGroup>

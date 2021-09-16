@@ -1,13 +1,15 @@
 ﻿#include <iostream>
 
+#include <Eigen/Dense>
 #include <GLFW/glfw3.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
 #include "TypeHelper.h"
+#include "TransformHelper.h"
 #include "Vector3D.h"
 
-void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, Surfel* surfel) {
+void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, Surfel* surfel, float factor, Eigen::Matrix4f& translate, Eigen::Matrix4f& rotate, int index) {
 	float wrp_frustum_nearplane, wrp_frustum_farplane;
 	float zbf_cutoffRadius_2, zbf_angleThreshold;
 	float vp_sx, vp_sy;				// scaling for viewport mapping
@@ -99,6 +101,18 @@ void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty*
 	if (z_c > wrp_frustum_nearplane && z_c < wrp_frustum_farplane) {
 		x_c = A[0][0] * pos[0] + A[0][1] * pos[1] + A[0][2] * pos[2] + v[0];
 		y_c = A[0][3] * pos[0] + A[0][4] * pos[1] + A[0][5] * pos[2] + v[1];
+
+		if (index == 0) {
+			Eigen::Vector4f p(pos[0], pos[1], pos[2], 1.0f);
+			Eigen::Matrix4f modelMat, viewMat, projectionMat, MVP;
+			modelMat = translate * rotate * TransformHelper::scale(factor);
+			viewMat = TransformHelper::lookAt(Eigen::Vector3f(0.0f, 0.0f, 1000.0f), Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
+			//projectionMat = TransformHelper::perspective(M_PI / 6.0f, (float)m_width / (float)m_height, 10.0f, 100000.0f);
+			Eigen::Vector4f v = viewMat * modelMat * p;
+			//Eigen::Vector4f v(x_c, y_c, z_c, 1.0f);
+			//Eigen::Vector4f p = MVP.inverse() * v;
+			std::cout << v(0) << ' ' << v(1) << ' ' << -v(2) << ' ' << v(3) << ' ' << x_c << ' ' << y_c << ' ' << z_c << std::endl;
+		}
 
 		// perspective divide and viewport transformation
 		r_z_c = 1 / z_c;
@@ -433,9 +447,9 @@ void surfaceSplatStep2(int width, ZBufferProperty* zBufferProperty, ZBufferItem*
 		}
 }
 
-void project(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels) {
+void project(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, ZBufferItem* zBuffer, float* filterLUT, int numSurfels, Surfel* surfels, float factor, Eigen::Matrix4f& translate, Eigen::Matrix4f& rotate) {
 	for (int i = 0; i < numSurfels; i++)
-		calculateAttributes(width, height, warper, zBufferProperty, &surfels[i]);
+		calculateAttributes(width, height, warper, zBufferProperty, &surfels[i], factor, translate, rotate, i);
 	for (int i = 0; i < numSurfels; i++)
 		surfaceSplatStep1(width, zBufferProperty, zBuffer, &surfels[i]);
 	for (int i = 0; i < numSurfels; i++)

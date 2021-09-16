@@ -13,7 +13,7 @@ CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int widt
     MtrUnity4x4f(m_cameraPosition.rotationMatrix);
 
 	m_warper = new Warper;
-	setFrustum(30.f, 1.f, 10.f, 100000.f);
+	setFrustum(30.f, (float)width / (float)height, 10.f, 100000.f);
 
 	m_zBufferProperty = new ZBufferProperty;
 	m_zBufferProperty->bufsize = width * height;
@@ -65,6 +65,9 @@ CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int widt
 
 		cudaMalloc(&m_imageGpu, sizeof(unsigned char) * width * height * 3);
 	}
+
+	m_factor = 1.0f;
+	m_translate = m_rotate = Eigen::Matrix4f::Identity();
 }
 
 CRenderer::~CRenderer() {
@@ -152,12 +155,16 @@ void CRenderer::scale(const float dScaleX, const float dScaleY, const float dSca
     m_cameraPosition.scaleTranslationMatrix[0] *= dScaleX;
     m_cameraPosition.scaleTranslationMatrix[5] *= dScaleY;
     m_cameraPosition.scaleTranslationMatrix[10] *= dScaleZ;
+
+	m_factor *= dScaleX;
 }
 
 void CRenderer::translate(const float dx, const float dy, const float dz) {
     m_cameraPosition.scaleTranslationMatrix[12] += dx;
     m_cameraPosition.scaleTranslationMatrix[13] += dy;
     m_cameraPosition.scaleTranslationMatrix[14] += dz;
+
+	m_translate = TransformHelper::translate(Eigen::Vector3f(dx, dy, dz)) * m_translate;
 }
 
 void CRenderer::rotate(const float dAngle, const float x, const float y, const float z) {
@@ -166,6 +173,8 @@ void CRenderer::rotate(const float dAngle, const float x, const float y, const f
     MtrCreateRotation4x4fc(dAngle, x, y, z, userRotation);
     MtrMult4x4f(userRotation, m_cameraPosition.rotationMatrix, finalRotation);
     MtrCopy4x4f(finalRotation, m_cameraPosition.rotationMatrix);
+
+	m_rotate = TransformHelper::rotate(Eigen::Vector3f(x, y, z), dAngle) * m_rotate;
 }
 
 void CRenderer::render() {
@@ -187,7 +196,7 @@ void CRenderer::render() {
 		cudaMemcpy(m_image, m_imageGpu, sizeof(unsigned char) * m_width * m_height * 3, cudaMemcpyDeviceToHost);
 	}
 	else {
-		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels);
+		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels, m_factor, m_translate, m_rotate);
 		shade(m_width, m_height, m_warper, m_zBuffer, m_image, m_backgroundR, m_backgroundG, m_backgroundB);
 	}
 }
