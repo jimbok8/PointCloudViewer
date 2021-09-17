@@ -102,18 +102,6 @@ void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty*
 		x_c = A[0][0] * pos[0] + A[0][1] * pos[1] + A[0][2] * pos[2] + v[0];
 		y_c = A[0][3] * pos[0] + A[0][4] * pos[1] + A[0][5] * pos[2] + v[1];
 
-		if (index == 0) {
-			Eigen::Vector4f p(pos[0], pos[1], pos[2], 1.0f);
-			Eigen::Matrix4f modelMat, viewMat, projectionMat, MVP;
-			modelMat = translate * rotate * TransformHelper::scale(factor);
-			viewMat = TransformHelper::lookAt(Eigen::Vector3f(0.0f, 0.0f, 1000.0f), Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
-			//projectionMat = TransformHelper::perspective(M_PI / 6.0f, (float)m_width / (float)m_height, 10.0f, 100000.0f);
-			Eigen::Vector4f v = viewMat * modelMat * p;
-			//Eigen::Vector4f v(x_c, y_c, z_c, 1.0f);
-			//Eigen::Vector4f p = MVP.inverse() * v;
-			std::cout << v(0) << ' ' << v(1) << ' ' << -v(2) << ' ' << v(3) << ' ' << x_c << ' ' << y_c << ' ' << z_c << std::endl;
-		}
-
 		// perspective divide and viewport transformation
 		r_z_c = 1 / z_c;
 		xImg = (x_c * r_z_c + vp_tx) * vp_sx;
@@ -231,9 +219,12 @@ void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty*
 			zExtremum_x = tmp * (-dzc_dys * b + 2 * dzc_dxs * c) / discr;
 			zExtremum_y = tmp * (-2 * dzc_dys * a + dzc_dxs * b) / discr;
 
+			float z = -z_c;
 			tmp = zExtremum_x * dzc_dxs;
+			z -= tmp;
 			zRange_x = (tmp < 0) ? -tmp : tmp;
 			tmp = zExtremum_y * dzc_dys;
+			z -= tmp;
 			zRange_y = (tmp < 0) ? -tmp : tmp;
 
 			zMax = z_c + zRange_x + zRange_y;
@@ -277,11 +268,15 @@ void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty*
 			// see ellipseboundingbox.mws, an exact axis aligned bounding box is computed by finding the points on
 			// the ellipse where the tangent of the ellipse is parallel to x- and y-axis respectively.
 			// NOTE: the variable "d" in the maple sheet corresponds to "-zbf_cutoffRadius_2"!
+			float y = yImg;
 			discr = (float)sqrt((-b * b + 4 * c * a) * zbf_cutoffRadius_2 * a);
 			ly = 2.f / (-b * b + 4 * c * a) * discr;
+			y -= ly;
 
+			float x = xImg;
 			discr = (float)sqrt(c * (-b * b + 4 * c * a) * zbf_cutoffRadius_2);
 			lx = 2.f / (-b * b + 4 * c * a) * discr;
+			x -= lx;
 
 			lx = (lx < 0) ? -lx : lx;
 			ly = (ly < 0) ? -ly : ly;
@@ -289,6 +284,23 @@ void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty*
 			xMin = (int)(xImg - lx);
 			yMax = (int)(yImg + ly) + 1;
 			yMin = (int)(yImg - ly);
+
+			if (index == 0) {
+				x = (x / width * 2.0f - 1.0f) * z_c * warper->frustum.xP;
+				y = (y / height * 2.0f - 1.0f) * z_c * warper->frustum.yP;
+				float w = 1.0f;
+				//z = -(z * (wrp_frustum_nearplane + wrp_frustum_farplane) + 2.0f * wrp_frustum_nearplane * wrp_frustum_farplane) / (wrp_frustum_farplane - wrp_frustum_nearplane);
+				//float w = (z * (wrp_frustum_farplane - wrp_frustum_nearplane) + 2.0f * wrp_frustum_nearplane * wrp_frustum_farplane) / (wrp_frustum_nearplane + wrp_frustum_farplane);
+				Eigen::Vector4f v(x, y, z, w);
+				Eigen::Matrix4f modelMat, viewMat, projectionMat;
+				modelMat = translate * rotate * TransformHelper::scale(factor);
+				viewMat = TransformHelper::lookAt(Eigen::Vector3f(0.0f, 0.0f, 1000.0f), Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
+				projectionMat = TransformHelper::perspective(acos(-1.0f) / 6.0f, (float)width / (float)height, 10.0f, 100000.0f);
+				Eigen::Vector4f p = (viewMat * modelMat).inverse() * v;
+				Eigen::Vector3f d(p(0) - pos[0], p(1) - pos[1], p(2) - pos[2]);
+				std::cout << d.dot(Eigen::Vector3f(nrm[0], nrm[1], nrm[2])) << std::endl;
+				//std::cout << p(0) << ' ' << p(1) << ' ' << p(2) << ' ' << p(3) << std::endl;
+			}
 
 			// step 2: rasterize the EWA ellipse
 

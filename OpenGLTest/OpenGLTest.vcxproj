@@ -143,8 +143,10 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader\Fragment.glsl" />
-    <None Include="shader\Vertex.glsl" />
+    <None Include="shader\Fragment1.glsl" />
+    <None Include="shader\Fragment2.glsl" />
+    <None Include="shader\Vertex1.glsl" />
+    <None Include="shader\Vertex2.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CShader.h" />

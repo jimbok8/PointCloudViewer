@@ -23,10 +23,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader\Fragment.glsl">
+    <None Include="shader\Fragment1.glsl">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="shader\Vertex.glsl">
+    <None Include="shader\Vertex1.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\Fragment2.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\Vertex2.glsl">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
