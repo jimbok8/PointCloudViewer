@@ -29,6 +29,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SurfelRendererGPU", "Surfel
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenGLTest", "OpenGLTest\OpenGLTest.vcxproj", "{662ED39B-1361-4E8F-B7EB-B21F278498AD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SurfelRendererOpenGL", "SurfelRendererOpenGL\SurfelRendererOpenGL.vcxproj", "{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -245,6 +247,22 @@ Global
 		{662ED39B-1361-4E8F-B7EB-B21F278498AD}.ReleaseOpenMP|x64.Build.0 = Release|x64
 		{662ED39B-1361-4E8F-B7EB-B21F278498AD}.ReleaseOpenMP|x86.ActiveCfg = Release|Win32
 		{662ED39B-1361-4E8F-B7EB-B21F278498AD}.ReleaseOpenMP|x86.Build.0 = Release|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Debug|x64.ActiveCfg = Debug|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Debug|x64.Build.0 = Debug|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Debug|x86.ActiveCfg = Debug|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Debug|x86.Build.0 = Debug|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.DebugOpenMP|x64.ActiveCfg = Debug|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.DebugOpenMP|x64.Build.0 = Debug|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.DebugOpenMP|x86.ActiveCfg = Debug|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.DebugOpenMP|x86.Build.0 = Debug|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Release|x64.ActiveCfg = Release|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Release|x64.Build.0 = Release|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Release|x86.ActiveCfg = Release|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.Release|x86.Build.0 = Release|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.ReleaseOpenMP|x64.ActiveCfg = Release|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.ReleaseOpenMP|x64.Build.0 = Release|x64
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.ReleaseOpenMP|x86.ActiveCfg = Release|Win32
+		{3BEBF7ED-D26A-4E46-8CE6-4F8B8A781E17}.ReleaseOpenMP|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

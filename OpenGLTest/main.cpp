@@ -13,14 +13,20 @@ void processInput(GLFWwindow* window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-Eigen::Vector4f data[SCR_WIDTH * SCR_HEIGHT];
+typedef struct _Surfel {
+    Eigen::Vector4f position, normal, colorAndRadius, transformedNormal;
+    int xMin, xMax, yMin, yMax;
+    float radius, zMin, zMax, x0, y0, a, b, c, det;
+} Surfel;
+
+Surfel surfels[SCR_WIDTH * SCR_HEIGHT];
 
 int main()
 {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -93,13 +99,14 @@ int main()
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
-    for (int i = 0; i < SCR_WIDTH * SCR_HEIGHT; i++)
-        data[i] = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
+    for (int i = 0; i < SCR_WIDTH * SCR_HEIGHT; i++) {
+        surfels[i].colorAndRadius = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
+    }
 
     unsigned int ssbo;
     glGenBuffers(1, &ssbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Eigen::Vector4f) * SCR_WIDTH * SCR_HEIGHT, data, GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Surfel) * SCR_WIDTH * SCR_HEIGHT, surfels, GL_DYNAMIC_COPY);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     // uncomment this call to draw in wireframe polygons.
@@ -121,7 +128,7 @@ int main()
         // draw our first triangle
         shader1.use();
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         /*glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
@@ -135,7 +142,7 @@ int main()
 
         shader2.use();
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         // glBindVertexArray(0); // no need to unbind it every time 
 
