@@ -13,7 +13,7 @@ struct Surfel {
     //ivec4 box;
 };
 
-layout(std140, binding = 0) buffer SSBO {
+layout(std430, binding = 0) buffer SSBO {
     Surfel zBuffer[];
 };
 
@@ -21,6 +21,6 @@ void main() {
     int x = int((bPos.x + 1.0f) / 2.0f * 800);
     int y = int((-bPos.y + 1.0f) / 2.0f * 600);
 
-    //zBuffer[y * 800 + x].colorAndRadius = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    zBuffer[y * 800 + x].colorAndRadius = vec4(0.0f, 1.0f, 0.0f, 1.0f);
     FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 }

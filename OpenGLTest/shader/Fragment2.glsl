@@ -13,7 +13,7 @@ struct Surfel {
     //ivec4 box;
 };
 
-layout(std140, binding = 0) buffer SSBO {
+layout(std430, binding = 0) buffer SSBO {
     Surfel zBuffer[];
 };
 

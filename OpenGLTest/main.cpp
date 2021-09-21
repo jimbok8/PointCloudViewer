@@ -106,6 +106,7 @@ int main()
     unsigned int ssbo;
     glGenBuffers(1, &ssbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    std::cout << sizeof(Surfel) / 4 << std::endl;
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Surfel) * SCR_WIDTH * SCR_HEIGHT, surfels, GL_DYNAMIC_COPY);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
