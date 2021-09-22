@@ -298,7 +298,7 @@ void calculateAttributes(int width, int height, Warper* warper, ZBufferProperty*
 				projectionMat = TransformHelper::perspective(acos(-1.0f) / 6.0f, (float)width / (float)height, 10.0f, 100000.0f);
 				Eigen::Vector4f p = (viewMat * modelMat).inverse() * v;
 				Eigen::Vector3f d(p(0) - pos[0], p(1) - pos[1], p(2) - pos[2]);
-				std::cout << d.dot(Eigen::Vector3f(nrm[0], nrm[1], nrm[2])) << std::endl;
+				//std::cout << d.dot(Eigen::Vector3f(nrm[0], nrm[1], nrm[2])) << std::endl;
 				//std::cout << p(0) << ' ' << p(1) << ' ' << p(2) << ' ' << p(3) << std::endl;
 			}
 
@@ -466,6 +466,16 @@ void project(int width, int height, Warper* warper, ZBufferProperty* zBufferProp
 		surfaceSplatStep1(width, zBufferProperty, zBuffer, &surfels[i]);
 	for (int i = 0; i < numSurfels; i++)
 		surfaceSplatStep2(width, zBufferProperty, zBuffer, filterLUT, &surfels[i]);
+
+	for (int i = 0; i < 10; i++) {
+		std::cout << surfels[i].xMin << ' ' << surfels[i].xMax << ' ' << surfels[i].yMin << ' ' << surfels[i].yMax << ' ';
+		std::cout << surfels[i].radius << ' ' << surfels[i].zMin << ' ' << surfels[i].zMax << std::endl;
+	}
+	for (int i = numSurfels - 10; i < numSurfels; i++) {
+		std::cout << surfels[i].xMin << ' ' << surfels[i].xMax << ' ' << surfels[i].yMin << ' ' << surfels[i].yMax << ' ';
+		std::cout << surfels[i].radius << ' ' << surfels[i].zMin << ' ' << surfels[i].zMax << std::endl;
+	}
+	std::cout << std::endl;
 }
 
 __device__ void calculateAttributesGpu(int width, int height, Warper* warper, ZBufferProperty* zBufferProperty, Surfel* surfel, int* sum) {

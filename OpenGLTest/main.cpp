@@ -13,13 +13,25 @@ void processInput(GLFWwindow* window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+typedef struct _Warper {
+    float rotation[9];			// model-view rotation
+    float translation[3];		// model-view translation
+    float normalsRotation[9];	// rotation matrix to transform normals
+    float scaling;				// uniform model-view scaling
+    float xP, yP;				// x,y-extent of the view frustum at z=1
+    float xC, yC;				// x,y-center point of the view frustum at z=1
+    float nearplane, farplane;	// camera space z-values of near and far clipping planes
+    float v[24];				// vertices of the view frustum in camera space
+} Warper;
+
 typedef struct _Surfel {
-    Eigen::Vector4f position, normal, colorAndRadius, transformedNormal;
+    Eigen::Vector4f position, normal, color, transformedNormal;
     int xMin, xMax, yMin, yMax;
     float radius, zMin, zMax, x0, y0, a, b, c, det;
 } Surfel;
 
 Surfel surfels[SCR_WIDTH * SCR_HEIGHT];
+Warper warper;
 
 int main()
 {
@@ -100,14 +112,22 @@ int main()
     glBindVertexArray(0);
 
     for (int i = 0; i < SCR_WIDTH * SCR_HEIGHT; i++) {
-        surfels[i].colorAndRadius = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
+        surfels[i].color = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f);
     }
+    warper.v[0] = 0.0f;
+    warper.v[1] = 1.0f;
+    warper.v[2] = 0.0f;
 
-    unsigned int ssbo;
-    glGenBuffers(1, &ssbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    std::cout << sizeof(Surfel) / 4 << std::endl;
+    unsigned int ssbo0;
+    glGenBuffers(1, &ssbo0);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo0);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Surfel) * SCR_WIDTH * SCR_HEIGHT, surfels, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    unsigned int ssbo1;
+    glGenBuffers(1, &ssbo1);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo1);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Warper), &warper, GL_DYNAMIC_COPY);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     // uncomment this call to draw in wireframe polygons.
@@ -129,7 +149,8 @@ int main()
         // draw our first triangle
         shader1.use();
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo1);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         /*glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
@@ -143,7 +164,8 @@ int main()
 
         shader2.use();
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo1);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         // glBindVertexArray(0); // no need to unbind it every time 
 

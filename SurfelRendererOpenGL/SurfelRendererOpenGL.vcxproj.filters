@@ -18,6 +18,18 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CShader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CRenderShader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CComputeShader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CRenderer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\Compute.glsl">
@@ -29,6 +41,21 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="TypeHelper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CRenderShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CComputeShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CRenderer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

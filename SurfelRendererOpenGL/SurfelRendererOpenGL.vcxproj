@@ -139,12 +139,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CComputeShader.cpp" />
+    <ClCompile Include="CRenderer.cpp" />
+    <ClCompile Include="CRenderShader.cpp" />
+    <ClCompile Include="CShader.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\Compute.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CComputeShader.h" />
+    <ClInclude Include="CRenderer.h" />
+    <ClInclude Include="CRenderShader.h" />
+    <ClInclude Include="CShader.h" />
+    <ClInclude Include="MatrixHelper.h" />
     <ClInclude Include="TransformHelper.h" />
     <ClInclude Include="TypeHelper.h" />
   </ItemGroup>
