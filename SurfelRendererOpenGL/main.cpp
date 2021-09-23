@@ -1,7 +1,10 @@
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include <vector>
 #include <fstream>
 #include <iostream>
 
+#include <stb_image_write.h>
 #include <Eigen/Dense>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -86,7 +89,8 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     g_renderer = new CRenderer(positions.size(), surfels, WINDOW_WIDTH, WINDOW_HEIGHT, 25, 25, 25);
-    //g_renderer->render();
+    g_renderer->render();
+    stbi_write_png("out.png", g_renderer->getWidth(), g_renderer->getHeight(), 3, g_renderer->getImage(), 0);
 
     CRenderShader renderShader("shader/Vertex.glsl", "shader/Fragment.glsl");
     float vertices[] = {
@@ -117,6 +121,9 @@ int main() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    renderShader.use();
+    renderShader.setInt("tex", 0);
+
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -129,18 +136,19 @@ int main() {
         //if (frames == 0)
             //last = glfwGetTime();
 
-        glClear(GL_COLOR_BUFFER_BIT);
-
         g_renderer->render();
+        
+        glClear(GL_COLOR_BUFFER_BIT);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_renderer->getWidth(), g_renderer->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, g_renderer->getImage());
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
         renderShader.use();
-        renderShader.setInt("tex", 0);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
 

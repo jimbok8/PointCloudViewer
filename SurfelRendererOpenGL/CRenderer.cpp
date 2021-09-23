@@ -313,6 +313,7 @@ void CRenderer::splat() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glBindVertexArray(0);
 
 	CRenderShader renderShader2("shader/Vertex1.glsl", "shader/Fragment2.glsl");
 	renderShader2.use();
@@ -323,6 +324,7 @@ void CRenderer::splat() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glBindVertexArray(0);
 
 	CRenderShader renderShader3("shader/Vertex1.glsl", "shader/Fragment3.glsl");
 	renderShader3.use();
@@ -334,18 +336,10 @@ void CRenderer::splat() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glBindVertexArray(0);
 
 	void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
 	memcpy(m_zBuffer, p, sizeof(ZBufferItem)* m_zBufferProperty->bufsize);
-
-	int sum = 0;
-	for (int i = 0; i < m_zBufferProperty->bufsize; i++)
-		if (m_zBuffer[i].zMin < FLT_MAX) {
-			std::cout << m_zBuffer[i].color.transpose() << ' ' << m_zBuffer[i].transformedNormal.transpose() << ' ' << m_zBuffer[i].zMin << ' ' << m_zBuffer[i].zMax << ' ' << m_zBuffer[i].w << std::endl;
-			if ((++sum) == 10)
-				break;
-		}
-	std::cout << sum << std::endl;
 }
 
 void CRenderer::shade() {
