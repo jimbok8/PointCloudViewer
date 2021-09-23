@@ -172,9 +172,6 @@ int main() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    shader.use();
-    shader.setInt("tex", 0);
-
     //unsigned int fbo;
     //glGenFramebuffers(1, &fbo);
     //glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -203,6 +200,7 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, texture);
 
         shader.use();
+        shader.setInt("tex", 0);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glfwSwapBuffers(window);

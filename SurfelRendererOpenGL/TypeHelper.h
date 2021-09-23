@@ -9,12 +9,6 @@ typedef struct _CameraPosition {
 	TransformationMatrix16f scaleTranslationMatrix, rotationMatrix;
 } CameraPosition;
 
-typedef struct _Surfel {
-	Eigen::Vector4f position, normal, color, transformedNormal;
-	int xMin, xMax, yMin, yMax;
-	float radius, zMin, zMax, x0, y0, a, b, c, det_;
-} Surfel;
-
 typedef struct _Warper {
 	float rotation[9];			// model-view rotation
 	float translation[3];		// model-view translation
@@ -27,11 +21,8 @@ typedef struct _Warper {
 } Warper;
 
 typedef struct _ZBufferItem {
-	float zMin;				// z-range used for blending
-	float zMax;
-	float w;				// accumulated weights
-	float n[3];				// accumulated normal
-	float c[3];				// accumulated color values
+	Eigen::Vector4f color, transformedNormal;
+	float zMin, zMax, w;
 } ZBufferItem;
 
 typedef struct _ZBufferProperty {
@@ -40,5 +31,15 @@ typedef struct _ZBufferProperty {
 	float cutoffRadius;		// surface splatting parameters
 	float angleTrheshold;	// blending thresholds used for surface splatting
 } ZBufferProperty;
+
+typedef struct _Surfel {
+	Eigen::Vector4f position, normal, color, transformedNormal;
+	float radius, xMin, xMax, yMin, yMax, zMin, zMax, x0, y0, a, b, c, det_;
+} Surfel;
+
+typedef struct _Vertex {
+	Eigen::Vector4f position, color, transformedNormal;
+	float x0, y0, zMin, zMax, a, b, c, det_;
+} Vertex;
 
 #endif

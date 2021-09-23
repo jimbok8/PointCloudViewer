@@ -12,6 +12,7 @@
 #include "MatrixHelper.h"
 #include "TransformHelper.h"
 #include "CComputeShader.h"
+#include "CRenderShader.h"
 
 class CRenderer {
 private:
@@ -35,6 +36,8 @@ private:
     void setFrustum(float fofv, float aspect, float nearplane, float farplane);
     void setTrafo(const float trafo[16]);
     void project();
+    void splat();
+    void shade();
 
 public:
     CRenderer(const int numSurfels, const Surfel* surfels, const int width, const int height, const unsigned char backgroundR, const unsigned char backgroundG, const unsigned char backgroundB);

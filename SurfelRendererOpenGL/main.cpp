@@ -58,7 +58,7 @@ int main() {
 
         surfels[i].position = Eigen::Vector4f(position(0), position(1), position(2), 1.0f);
         surfels[i].normal = Eigen::Vector4f(normal(0), normal(1), normal(2), 0.0f);
-        surfels[i].color = Eigen::Vector4f(r, g, b, 1.0f);
+        surfels[i].color = Eigen::Vector4f(r * 255.0f, g * 255.0f, b * 255.0f, 1.0f);
         surfels[i].radius = us[i].norm();
     }
 
@@ -86,7 +86,73 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     g_renderer = new CRenderer(positions.size(), surfels, WINDOW_WIDTH, WINDOW_HEIGHT, 25, 25, 25);
-    g_renderer->render();
+    //g_renderer->render();
+
+    CRenderShader renderShader("shader/Vertex.glsl", "shader/Fragment.glsl");
+    float vertices[] = {
+         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f
+    };
+    unsigned int indices[] = {
+        0, 1, 3,
+        1, 2, 3
+    };
+    unsigned int vao, vbo, ebo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    //double last, current;
+    //int frames = 0;
+    while (!glfwWindowShouldClose(window)) {
+        //if (frames == 0)
+            //last = glfwGetTime();
+
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        g_renderer->render();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_renderer->getWidth(), g_renderer->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, g_renderer->getImage());
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        renderShader.use();
+        renderShader.setInt("tex", 0);
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+
+        //frames++;
+        //if (frames == 10) {
+        //    current = glfwGetTime();
+        //    std::cout << 10.0 / (current - last) << std::endl;
+        //    frames = 0;
+        //}
+    }
+
+    glfwTerminate();
 
     return 0;
 }

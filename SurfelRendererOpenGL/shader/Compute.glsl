@@ -20,8 +20,7 @@ struct Warper {
 
 struct Surfel {
     vec4 position, normal, color, transformedNormal;
-    int xMin, xMax, yMin, yMax;
-    float radius, zMin, zMax, x0, y0, a, b, c, det_;
+	float radius, xMin, xMax, yMin, yMax, zMin, zMax, x0, y0, a, b, c, det_;
 };
 
 layout(local_size_x = 1024) in;
@@ -64,8 +63,8 @@ void main() {
 	float xImg, yImg;			// x- and y-screen-coordinates of warped sample
 	float xPad, yPad;			// pads in x and y direction for correct clipping
 
-	vec4 pos;				// object space sample position
-	vec4 nrm;				// object space normal
+	vec4 pos;					// object space sample position
+	vec4 nrm;					// object space normal
 
 	float radius, _radius;		// surfel radius
 	float n[3];					// camera space normal
@@ -77,11 +76,11 @@ void main() {
 	float Iy_x, Iy_y, Iy_z;		// direction of projection of screen y vector onto ST plane
 	float r, r_, f;
 	float ndotv;				// N*V (normal dot viewing direction) dotproduct
-	float sx, sy, ty;		// derivatives of the screen to ST plane mapping
+	float sx, sy, ty;			// derivatives of the screen to ST plane mapping
 	float m11, m12, m22;
 	float a, b, b_2, c;			// the EWA ellipse coefficients
 
-	int xMin, xMax, yMin, yMax;	// bounding box of the ellipse to be rasterized
+	float xMin, xMax, yMin, yMax;	// bounding box of the ellipse to be rasterized
 	float lx, ly;
 
 	float dzc_dxs, dzc_dys;			// dzc/dxs, dzc/dys derivatives
@@ -309,32 +308,15 @@ void main() {
 
 			lx = (lx < 0) ? -lx : lx;
 			ly = (ly < 0) ? -ly : ly;
-			xMax = int(xImg + lx) + 1;
-			xMin = int(xImg - lx);
-			yMax = int(yImg + ly) + 1;
-			yMin = int(yImg - ly);
-
-			//if (index == 0) {
-			//	x = (x / width * 2.0f - 1.0f) * z_c * warper.xP;
-			//	y = (y / height * 2.0f - 1.0f) * z_c * warper.yP;
-			//	float w = 1.0f;
-			//	//z = -(z * (wrp_frustum_nearplane + wrp_frustum_farplane) + 2.0f * wrp_frustum_nearplane * wrp_frustum_farplane) / (wrp_frustum_farplane - wrp_frustum_nearplane);
-			//	//float w = (z * (wrp_frustum_farplane - wrp_frustum_nearplane) + 2.0f * wrp_frustum_nearplane * wrp_frustum_farplane) / (wrp_frustum_nearplane + wrp_frustum_farplane);
-			//	Eigen::Vector4f v(x, y, z, w);
-			//	Eigen::Matrix4f modelMat, viewMat, projectionMat;
-			//	modelMat = translate * rotate * TransformHelper::scale(factor);
-			//	viewMat = TransformHelper::lookAt(Eigen::Vector3f(0.0f, 0.0f, 1000.0f), Eigen::Vector3f(0.0f, 0.0f, 0.0f), Eigen::Vector3f(0.0f, 1.0f, 0.0f));
-			//	projectionMat = TransformHelper::perspective(acos(-1.0f) / 6.0f, (float)width / (float)height, 10.0f, 100000.0f);
-			//	Eigen::Vector4f p = (viewMat * modelMat).inverse() * v;
-			//	Eigen::Vector3f d(p(0) - pos.x, p(1) - pos.y, p(2) - pos.z);
-			//	std::cout << d.dot(Eigen::Vector3f(nrm.x, nrm.y, nrm.z)) << std::endl;
-			//	//std::cout << p(0) << ' ' << p(1) << ' ' << p(2) << ' ' << p(3) << std::endl;
-			//}
+			xMax = (xImg + lx + 1) / width * 2.0f - 1.0f;
+			xMin = (xImg - lx) / width * 2.0f - 1.0f;
+			yMax = (yImg + ly + 1) / height  * 2.0f - 1.0f;
+			yMin = (yImg - ly) / height * 2.0f - 1.0f;
 
 			// step 2: rasterize the EWA ellipse
 
 			// padding
-			if (xMin < 0) {
+			/*if (xMin < 0) {
 				xMin = 0;
 				if (xMax < 0)
 					xMax = -1;
@@ -353,7 +335,7 @@ void main() {
 				yMax = height - 1;
 				if (yMin >= height)
 					yMin = height;
-			}
+			}*/
 
 			surfels[index].xMin = xMin;
 			surfels[index].xMax = xMax;
@@ -375,9 +357,9 @@ void main() {
 		}
 	}
 	if (!flag) {
-		surfels[index].xMin = 0;
-		surfels[index].xMax = -1;
-		surfels[index].yMin = 0;
-		surfels[index].yMax = -1;
+		surfels[index].xMin = -2.0f;
+		surfels[index].xMax = -2.0f;
+		surfels[index].yMin = -2.0f;
+		surfels[index].yMax = -2.0f;
 	}
 }

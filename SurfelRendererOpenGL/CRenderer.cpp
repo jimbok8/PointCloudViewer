@@ -25,15 +25,11 @@ CRenderer::CRenderer(const int numSurfels, const Surfel* surfels, const int widt
 
 	m_clearData = new ZBufferItem[width * height];
 	for (int i = 0; i < width * height; i++) {
+		m_clearData[i].color = Eigen::Vector4f::Zero();
+		m_clearData[i].transformedNormal = Eigen::Vector4f::Zero();
 		m_clearData[i].zMin = FLT_MAX;
 		m_clearData[i].zMax = -FLT_MAX;
 		m_clearData[i].w = 0.0f;
-		m_clearData[i].c[0] = 0.0f;
-		m_clearData[i].c[1] = 0.0f;
-		m_clearData[i].c[2] = 0.0f;
-		m_clearData[i].n[0] = 0.0f;
-		m_clearData[i].n[1] = 0.0f;
-		m_clearData[i].n[2] = 0.0f;
 	}
 
 	m_filterLUT = new float[m_zBufferProperty->LUTsize];
@@ -160,7 +156,6 @@ void CRenderer::project() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo2);
 	
 	CComputeShader computeShader("shader/Compute.glsl");
-
 	computeShader.use();
 	computeShader.setInt("width", m_width);
 	computeShader.setInt("height", m_height);
@@ -170,14 +165,231 @@ void CRenderer::project() {
 	void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
 	memcpy(m_surfels, p, sizeof(Surfel) * m_numSurfels);
 
-	for (int i = 0; i < 10; i++) {
-		std::cout << m_surfels[i].xMin << ' ' << m_surfels[i].xMax << ' ' << m_surfels[i].yMin << ' ' << m_surfels[i].yMax << ' ';
+	/*for (int i = 0; i < 10; i++) {
+		std::cout << (int)((m_surfels[i].xMin + 1.0f) / 2.0f * m_width) << ' ' << (int)((m_surfels[i].xMax + 1.0f) / 2.0f * m_width) << ' ' << (int)((m_surfels[i].yMin + 1.0f) / 2.0f * m_height) << ' ' << (int)((m_surfels[i].yMax + 1.0f) / 2.0f * m_height) << ' ';
 		std::cout << m_surfels[i].radius << ' ' << m_surfels[i].zMin << ' ' << m_surfels[i].zMax << std::endl;
 	}
 	for (int i = m_numSurfels - 10; i < m_numSurfels; i++) {
-		std::cout << m_surfels[i].xMin << ' ' << m_surfels[i].xMax << ' ' << m_surfels[i].yMin << ' ' << m_surfels[i].yMax << ' ';
+		std::cout << (int)((m_surfels[i].xMin + 1.0f) / 2.0f * m_width) << ' ' << (int)((m_surfels[i].xMax + 1.0f) / 2.0f * m_width) << ' ' << (int)((m_surfels[i].yMin + 1.0f) / 2.0f * m_height) << ' ' << (int)((m_surfels[i].yMax + 1.0f) / 2.0f * m_height) << ' ';
 		std::cout << m_surfels[i].radius << ' ' << m_surfels[i].zMin << ' ' << m_surfels[i].zMax << std::endl;
+	}*/
+}
+
+void CRenderer::splat() {
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
+
+	for (int i = 0; i < m_numSurfels; i++) {
+		Vertex v0, v1, v2, v3;
+		v0.position = Eigen::Vector4f(m_surfels[i].xMin, m_surfels[i].yMin, 0.0f, 1.0f);
+		v0.color = m_surfels[i].color;
+		v0.transformedNormal = m_surfels[i].transformedNormal;
+		v0.x0 = m_surfels[i].x0;
+		v0.y0 = m_surfels[i].y0;
+		v0.zMin = m_surfels[i].zMin;
+		v0.zMax = m_surfels[i].zMax;
+		v0.a = m_surfels[i].a;
+		v0.b = m_surfels[i].b;
+		v0.c = m_surfels[i].c;
+		v0.det_ = m_surfels[i].det_;
+
+		v1.position = Eigen::Vector4f(m_surfels[i].xMin, m_surfels[i].yMax, 0.0f, 1.0f);
+		v1.color = m_surfels[i].color;
+		v1.transformedNormal = m_surfels[i].transformedNormal;
+		v1.x0 = m_surfels[i].x0;
+		v1.y0 = m_surfels[i].y0;
+		v1.zMin = m_surfels[i].zMin;
+		v1.zMax = m_surfels[i].zMax;
+		v1.a = m_surfels[i].a;
+		v1.b = m_surfels[i].b;
+		v1.c = m_surfels[i].c;
+		v1.det_ = m_surfels[i].det_;
+
+		v2.position = Eigen::Vector4f(m_surfels[i].xMax, m_surfels[i].yMin, 0.0f, 1.0f);
+		v2.color = m_surfels[i].color;
+		v2.transformedNormal = m_surfels[i].transformedNormal;
+		v2.x0 = m_surfels[i].x0;
+		v2.y0 = m_surfels[i].y0;
+		v2.zMin = m_surfels[i].zMin;
+		v2.zMax = m_surfels[i].zMax;
+		v2.a = m_surfels[i].a;
+		v2.b = m_surfels[i].b;
+		v2.c = m_surfels[i].c;
+		v2.det_ = m_surfels[i].det_;
+
+		v3.position = Eigen::Vector4f(m_surfels[i].xMax, m_surfels[i].yMax, 0.0f, 1.0f);
+		v3.color = m_surfels[i].color;
+		v3.transformedNormal = m_surfels[i].transformedNormal;
+		v3.x0 = m_surfels[i].x0;
+		v3.y0 = m_surfels[i].y0;
+		v3.zMin = m_surfels[i].zMin;
+		v3.zMax = m_surfels[i].zMax;
+		v3.a = m_surfels[i].a;
+		v3.b = m_surfels[i].b;
+		v3.c = m_surfels[i].c;
+		v3.det_ = m_surfels[i].det_;
+
+		int i0, i1, i2, i3;
+		i0 = vertices.size();
+		i1 = vertices.size() + 1;
+		i2 = vertices.size() + 2;
+		i3 = vertices.size() + 3;
+
+		vertices.push_back(v0);
+		vertices.push_back(v1);
+		vertices.push_back(v2);
+		vertices.push_back(v3);
+
+		indices.push_back(i0);
+		indices.push_back(i1);
+		indices.push_back(i2);
+		indices.push_back(i3);
+		indices.push_back(i2);
+		indices.push_back(i1);
 	}
+
+	unsigned vao, vbo, ebo;
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
+
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, transformedNormal));
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x0));
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, y0));
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, zMin));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, zMax));
+	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, a));
+	glEnableVertexAttribArray(8);
+	glVertexAttribPointer(8, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, b));
+	glEnableVertexAttribArray(9);
+	glVertexAttribPointer(9, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, c));
+	glEnableVertexAttribArray(10);
+	glVertexAttribPointer(10, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, det_));
+	glBindVertexArray(0);
+
+	unsigned int ssbo0;
+	glGenBuffers(1, &ssbo0);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo0);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ZBufferProperty), m_zBufferProperty, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo0);
+
+	unsigned int ssbo3;
+	glGenBuffers(1, &ssbo3);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo3);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, m_zBuffer, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
+
+	unsigned int ssbo4;
+	glGenBuffers(1, &ssbo4);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo4);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * m_zBufferProperty->LUTsize, m_filterLUT, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo4);
+
+	CRenderShader renderShader1("shader/Vertex1.glsl", "shader/Fragment1.glsl");
+	renderShader1.use();
+	renderShader1.setInt("width", m_width);
+	renderShader1.setInt("height", m_height);
+	glBindVertexArray(vao);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	CRenderShader renderShader2("shader/Vertex1.glsl", "shader/Fragment2.glsl");
+	renderShader2.use();
+	renderShader2.setInt("width", m_width);
+	renderShader2.setInt("height", m_height);
+	glBindVertexArray(vao);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	CRenderShader renderShader3("shader/Vertex1.glsl", "shader/Fragment3.glsl");
+	renderShader3.use();
+	renderShader3.setInt("width", m_width);
+	renderShader3.setInt("height", m_height);
+	glBindVertexArray(vao);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo4);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	memcpy(m_zBuffer, p, sizeof(ZBufferItem)* m_zBufferProperty->bufsize);
+
+	int sum = 0;
+	for (int i = 0; i < m_zBufferProperty->bufsize; i++)
+		if (m_zBuffer[i].zMin < FLT_MAX) {
+			std::cout << m_zBuffer[i].color.transpose() << ' ' << m_zBuffer[i].transformedNormal.transpose() << ' ' << m_zBuffer[i].zMin << ' ' << m_zBuffer[i].zMax << ' ' << m_zBuffer[i].w << std::endl;
+			if ((++sum) == 10)
+				break;
+		}
+	std::cout << sum << std::endl;
+}
+
+void CRenderer::shade() {
+	unsigned int ssbo1;
+	glGenBuffers(1, &ssbo1);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo1);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Warper), m_warper, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo1);
+
+	unsigned int ssbo3;
+	glGenBuffers(1, &ssbo3);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo3);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ZBufferItem) * m_zBufferProperty->bufsize, m_zBuffer, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo3);
+
+	float* image = new float[m_zBufferProperty->bufsize * 3];
+	unsigned int ssbo5;
+	glGenBuffers(1, &ssbo5);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo5);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * m_zBufferProperty->bufsize * 3, image, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo5);
+
+	CComputeShader computeShader("shader/ComputeShade.glsl");
+	computeShader.use();
+	computeShader.setInt("width", m_width);
+	computeShader.setInt("height", m_height);
+	glDispatchCompute((m_width * m_height + 1023) / 1024, 1, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	memcpy(image, p, sizeof(float) * m_zBufferProperty->bufsize * 3);
+
+	int sum = 0;
+	for (int i = 0; i < m_zBufferProperty->bufsize * 3; i++) {
+		m_image[i] = (unsigned char)image[i];
+		//if (m_image[i] > 30 || m_image[i] < 20) {
+		//	std::cout << (int)m_image[i] << ' ';
+		//	sum++;
+		//}
+	}
+	//std::cout << sum << std::endl;
 }
 
 int CRenderer::getWidth() const {
@@ -206,15 +418,11 @@ void CRenderer::resize(const int width, const int height) {
 
 	m_clearData = new ZBufferItem[width * height];
 	for (int i = 0; i < width * height; i++) {
+		m_clearData[i].color = Eigen::Vector4f::Zero();
+		m_clearData[i].transformedNormal = Eigen::Vector4f::Zero();
 		m_clearData[i].zMin = FLT_MAX;
 		m_clearData[i].zMax = -FLT_MAX;
 		m_clearData[i].w = 0.0f;
-		m_clearData[i].c[0] = 0.0f;
-		m_clearData[i].c[1] = 0.0f;
-		m_clearData[i].c[2] = 0.0f;
-		m_clearData[i].n[0] = 0.0f;
-		m_clearData[i].n[1] = 0.0f;
-		m_clearData[i].n[2] = 0.0f;
 	}
 
 	m_image = new unsigned char[width * height * 3];
@@ -260,5 +468,6 @@ void CRenderer::render() {
 	setTrafo(convertedTransformation);
 
 	project();
-	//shade(m_width, m_height, m_warper, m_zBuffer, m_image, m_backgroundR, m_backgroundG, m_backgroundB);
+	splat();
+	shade();
 }

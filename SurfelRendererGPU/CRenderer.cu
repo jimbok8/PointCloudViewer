@@ -198,6 +198,12 @@ void CRenderer::render() {
 	else {
 		project(m_width, m_height, m_warper, m_zBufferProperty, m_zBuffer, m_filterLUT, m_numSurfels, m_surfels, m_factor, m_translate, m_rotate);
 		shade(m_width, m_height, m_warper, m_zBuffer, m_image, m_backgroundR, m_backgroundG, m_backgroundB);
+
+		int sum = 0;
+		for (int i = 0; i < m_width * m_height * 3; i++)
+			if (m_image[i] != 25)
+				sum++;
+		std::cout << sum << std::endl;
 	}
 }
 
