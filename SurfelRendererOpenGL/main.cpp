@@ -130,15 +130,16 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    //double last, current;
-    //int frames = 0;
+    double last, current;
+    int frames = 0;
     while (!glfwWindowShouldClose(window)) {
-        //if (frames == 0)
-            //last = glfwGetTime();
+        if (frames == 0)
+            last = glfwGetTime();
 
         g_renderer->render();
         
         glClear(GL_COLOR_BUFFER_BIT);
+        stbi_write_png("out.png", g_renderer->getWidth(), g_renderer->getHeight(), 3, g_renderer->getImage(), 0);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_renderer->getWidth(), g_renderer->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, g_renderer->getImage());
 
         glActiveTexture(GL_TEXTURE0);
@@ -152,12 +153,12 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        //frames++;
-        //if (frames == 10) {
-        //    current = glfwGetTime();
-        //    std::cout << 10.0 / (current - last) << std::endl;
-        //    frames = 0;
-        //}
+        frames++;
+        if (frames == 10) {
+            current = glfwGetTime();
+            std::cout << 10.0 / (current - last) << std::endl;
+            frames = 0;
+        }
     }
 
     glfwTerminate();

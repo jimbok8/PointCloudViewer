@@ -7,6 +7,7 @@
 
 #include <Eigen/Dense>
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 #include "TypeHelper.h"
 #include "MatrixHelper.h"
@@ -26,11 +27,12 @@ private:
     Warper* m_warper;
     ZBufferProperty* m_zBufferProperty;
     ZBufferItem* m_zBuffer, * m_clearData;
-    float* m_filterLUT;
+    float* m_filterLUT, * m_floatImage;
     Surfel* m_surfels;
+    Vertex* m_vertices;
+    unsigned int* m_indices;
 
-    float m_factor;
-    Eigen::Matrix4f m_translate, m_rotate;
+    unsigned int m_vao, m_ssbo0, m_ssbo1, m_ssbo2, m_ssbo3, m_ssbo4, m_ssbo5, m_ssbo6;
 
     void init();
     void setFrustum(float fofv, float aspect, float nearplane, float farplane);

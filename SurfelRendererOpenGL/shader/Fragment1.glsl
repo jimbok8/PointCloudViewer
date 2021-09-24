@@ -1,8 +1,8 @@
 #version 430 core
 
 in vec4 position;
+in vec4 normal;
 in vec4 color;
-in vec4 transformedNormal;
 in float x0;
 in float y0;
 in float zMin;
@@ -22,7 +22,7 @@ struct ZBufferProperty {
 };
 
 struct ZBufferItem {
-    vec4 color, transformedNormal;
+    vec4 normal, color;
     float zMin, zMax, w;
 };
 
@@ -54,9 +54,11 @@ void main() {
 	q = a * x * x + b * x * y + c * y * y;
     int index = Y * width + X;
 
-    if (q < zbf_cutoffRadius_2 && zMin < zBuffer[index].zMin)
+    if (q < zbf_cutoffRadius_2 && zMin < zBuffer[index].zMin) {
         zBuffer[index].zMin = zMin;
-		//atomicMin(zBuffer[Y * width + X].zMin, zMin);
+        zBuffer[index].zMax = zMax;
+        //atomicMin(zBuffer[Y * width + X].zMin, zMin);
+    }
 
     FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 }

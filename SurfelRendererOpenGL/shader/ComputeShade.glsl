@@ -12,8 +12,8 @@ struct Warper {
 };
 
 struct ZBufferItem {
-    vec4 color, transformedNormal;
-    float zMin, zMax, w;
+	vec4 normal, color;
+	float zMin, zMax, w;
 };
 
 layout(local_size_x = 1024) in;
@@ -60,9 +60,9 @@ void main() {
 		float g = zBuffer[i].color.y * w_;
 		float b = zBuffer[i].color.z * w_;
 
-		float nx = zBuffer[i].transformedNormal.x;
-		float ny = zBuffer[i].transformedNormal.y;
-		float nz = zBuffer[i].transformedNormal.z;
+		float nx = zBuffer[i].normal.x;
+		float ny = zBuffer[i].normal.y;
+		float nz = zBuffer[i].normal.z;
 		w_ = 1.f / sqrt(nx * nx + ny * ny + nz * nz);
 		nx *= w_;
 		ny *= w_;

@@ -1,8 +1,8 @@
 #version 430 core
 
 layout(location = 0) in vec4 vertexPosition;
-layout(location = 1) in vec4 vertexColor;
-layout(location = 2) in vec4 vertexTransformedNormal;
+layout(location = 1) in vec4 vertexNormal;
+layout(location = 2) in vec4 vertexColor;
 layout(location = 3) in float vertexX0;
 layout(location = 4) in float vertexY0;
 layout(location = 5) in float vertexZMin;
@@ -14,7 +14,7 @@ layout(location = 10) in float vertexDet_;
 
 out vec4 position;
 out vec4 color;
-out vec4 transformedNormal;
+out vec4 normal;
 out float x0;
 out float y0;
 out float zMin;
@@ -26,8 +26,8 @@ out float det_;
 
 void main() {
     position = vertexPosition;
+    normal = vertexNormal;
     color = vertexColor;
-    transformedNormal = vertexTransformedNormal;
     x0 = vertexX0;
     y0 = vertexY0;
     zMin = vertexZMin;

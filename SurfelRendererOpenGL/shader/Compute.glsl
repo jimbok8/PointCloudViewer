@@ -19,8 +19,13 @@ struct Warper {
 };
 
 struct Surfel {
-    vec4 position, normal, color, transformedNormal;
-	float radius, xMin, xMax, yMin, yMax, zMin, zMax, x0, y0, a, b, c, det_;
+    vec4 position, normal, color;
+	float radius;
+};
+
+struct Vertex {
+	vec4 position, normal, color;
+	float x0, y0, zMin, zMax, a, b, c, det_;
 };
 
 layout(local_size_x = 1024) in;
@@ -40,11 +45,16 @@ layout(std430, binding = 2) buffer SSBO2 {
     Surfel surfels[];
 };
 
+layout(std430, binding = 6) buffer SSBO6 {
+	Vertex vertices[];
+};
+
 void main() {
     int index = int(gl_GlobalInvocationID.x);
     if (index >= surfels.length())
         return;
 
+	int vertexIndex = index * 4;
 	float wrp_frustum_nearplane, wrp_frustum_farplane;
 	float zbf_cutoffRadius_2, zbf_angleThreshold;
 	float vp_sx, vp_sy;				// scaling for viewport mapping
@@ -337,29 +347,65 @@ void main() {
 					yMin = height;
 			}*/
 
-			surfels[index].xMin = xMin;
-			surfels[index].xMax = xMax;
-			surfels[index].yMin = yMin;
-			surfels[index].yMax = yMax;
-			surfels[index].zMin = zMin;
-			surfels[index].zMax = zMax;
-			surfels[index].x0 = xImg;
-			surfels[index].y0 = yImg;
-			surfels[index].a = a;
-			surfels[index].b = b;
-			surfels[index].c = c;
-			surfels[index].det_ = det_;
-			surfels[index].transformedNormal[0] = n[0];
-			surfels[index].transformedNormal[1] = n[1];
-			surfels[index].transformedNormal[2] = n[2];
+			vertices[vertexIndex].position = vec4(xMin, yMin, 0.0f, 1.0f);
+			vertices[vertexIndex].normal.x = n[0];
+			vertices[vertexIndex].normal.y = n[1];
+			vertices[vertexIndex].normal.z = n[2];
+			vertices[vertexIndex].x0 = xImg;
+			vertices[vertexIndex].y0 = yImg;
+			vertices[vertexIndex].zMin = zMin;
+			vertices[vertexIndex].zMax = zMax;
+			vertices[vertexIndex].a = a;
+			vertices[vertexIndex].b = b;
+			vertices[vertexIndex].c = c;
+			vertices[vertexIndex].det_ = det_;
+
+			vertices[vertexIndex + 1].position = vec4(xMin, yMax, 0.0f, 1.0f);
+			vertices[vertexIndex + 1].normal.x = n[0];
+			vertices[vertexIndex + 1].normal.y = n[1];
+			vertices[vertexIndex + 1].normal.z = n[2];
+			vertices[vertexIndex + 1].x0 = xImg;
+			vertices[vertexIndex + 1].y0 = yImg;
+			vertices[vertexIndex + 1].zMin = zMin;
+			vertices[vertexIndex + 1].zMax = zMax;
+			vertices[vertexIndex + 1].a = a;
+			vertices[vertexIndex + 1].b = b;
+			vertices[vertexIndex + 1].c = c;
+			vertices[vertexIndex + 1].det_ = det_;
+
+			vertices[vertexIndex + 2].position = vec4(xMax, yMin, 0.0f, 1.0f);
+			vertices[vertexIndex + 2].normal.x = n[0];
+			vertices[vertexIndex + 2].normal.y = n[1];
+			vertices[vertexIndex + 2].normal.z = n[2];
+			vertices[vertexIndex + 2].x0 = xImg;
+			vertices[vertexIndex + 2].y0 = yImg;
+			vertices[vertexIndex + 2].zMin = zMin;
+			vertices[vertexIndex + 2].zMax = zMax;
+			vertices[vertexIndex + 2].a = a;
+			vertices[vertexIndex + 2].b = b;
+			vertices[vertexIndex + 2].c = c;
+			vertices[vertexIndex + 2].det_ = det_;
+
+			vertices[vertexIndex + 3].position = vec4(xMax, yMax, 0.0f, 1.0f);
+			vertices[vertexIndex + 3].normal.x = n[0];
+			vertices[vertexIndex + 3].normal.y = n[1];
+			vertices[vertexIndex + 3].normal.z = n[2];
+			vertices[vertexIndex + 3].x0 = xImg;
+			vertices[vertexIndex + 3].y0 = yImg;
+			vertices[vertexIndex + 3].zMin = zMin;
+			vertices[vertexIndex + 3].zMax = zMax;
+			vertices[vertexIndex + 3].a = a;
+			vertices[vertexIndex + 3].b = b;
+			vertices[vertexIndex + 3].c = c;
+			vertices[vertexIndex + 3].det_ = det_;
 
 			flag = true;
 		}
 	}
 	if (!flag) {
-		surfels[index].xMin = -2.0f;
-		surfels[index].xMax = -2.0f;
-		surfels[index].yMin = -2.0f;
-		surfels[index].yMax = -2.0f;
+		vertices[vertexIndex].position = vec4(-2.0f, -2.0f, 0.0f, 1.0f);
+		vertices[vertexIndex + 1].position = vec4(-2.0f, -2.0f, 0.0f, 1.0f);
+		vertices[vertexIndex + 2].position = vec4(-2.0f, -2.0f, 0.0f, 1.0f);
+		vertices[vertexIndex + 3].position = vec4(-2.0f, -2.0f, 0.0f, 1.0f);
 	}
 }

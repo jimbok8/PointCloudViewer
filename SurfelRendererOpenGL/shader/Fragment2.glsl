@@ -1,8 +1,8 @@
 #version 430 core
 
 in vec4 position;
+in vec4 normal;
 in vec4 color;
-in vec4 transformedNormal;
 in float x0;
 in float y0;
 in float zMin;
@@ -22,7 +22,7 @@ struct ZBufferProperty {
 };
 
 struct ZBufferItem {
-    vec4 color, transformedNormal;
+    vec4 normal, color;
     float zMin, zMax, w;
 };
 

@@ -3,8 +3,8 @@
 #extension GL_NV_shader_atomic_float : require
 
 in vec4 position;
+in vec4 normal;
 in vec4 color;
-in vec4 transformedNormal;
 in float x0;
 in float y0;
 in float zMin;
@@ -24,7 +24,7 @@ struct ZBufferProperty {
 };
 
 struct ZBufferItem {
-    vec4 color, transformedNormal;
+    vec4 normal, color;
     float zMin, zMax, w;
 };
 
@@ -71,9 +71,9 @@ void main() {
         atomicAdd(zBuffer[index].color.y, color.y * w);
         atomicAdd(zBuffer[index].color.z, color.z * w);
 
-        atomicAdd(zBuffer[index].transformedNormal.x, transformedNormal.x * w);
-        atomicAdd(zBuffer[index].transformedNormal.y, transformedNormal.y * w);
-        atomicAdd(zBuffer[index].transformedNormal.z, transformedNormal.z * w);
+        atomicAdd(zBuffer[index].normal.x, normal.x * w);
+        atomicAdd(zBuffer[index].normal.y, normal.y * w);
+        atomicAdd(zBuffer[index].normal.z, normal.z * w);
     }
 
     FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
